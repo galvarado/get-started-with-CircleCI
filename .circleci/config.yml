@@ -41,8 +41,6 @@ commands:
         type: string
       aws-secret-access-key:
         type: string
-      container-registry-url:
-        type: string
       eks-cluster-name:
         type: string
     steps:
@@ -67,16 +65,11 @@ jobs:
     executor: python3
     steps:
       - deploy-services:
-          blockchain: 'ethereum'
           aws-region: '${AWS_REGION}'
           aws-access-key-id: '${P9_DEV_PRIVATE_1_AWS_ACCESS_KEY_ID}'
           aws-secret-access-key: '${P9_DEV_PRIVATE_1_AWS_SECRET_ACCESS_KEY}'
-          container-registry-url: '${P9_DEV_PRIVATE_1_CONTAINER_REGISTRY_URL}'
-          db-migrations-flags: "--migrate"
-          deploy-maximum-one-replica-per-service: true
-          deploy-p2p: false
           eks-cluster-name: '${EKS_CLUSTER_NAME}'
-          is-sub-account-deployment: false
+
    
 workflows:
   
