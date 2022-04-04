@@ -53,7 +53,7 @@ commands:
           aws-region: AWS_REGION
           profile-name: default
       - aws-eks/update-kubeconfig-with-authenticator:
-          authenticator-release-tag: v0.5.1
+          authenticator-release-tag: v0.5.5
           install-kubectl: true
           cluster-name: << parameters.eks-cluster-name >>
           aws-region: << parameters.aws-region >>
