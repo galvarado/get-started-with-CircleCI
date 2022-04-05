@@ -48,7 +48,7 @@ commands:
         type: string
       eks-cluster-name:
         type: string
-      deploy-services:
+      aws-ecr-account-url:
         type: string
 
     steps:
