@@ -48,7 +48,7 @@ commands:
         type: string
       eks-cluster-name:
         type: string
-      aws-ecr-account-url:
+      container-registry-url:
         type: string
 
     steps:
@@ -81,7 +81,7 @@ jobs:
           aws-access-key-id: '${AWS_ACCESS_KEY_ID}'
           aws-secret-access-key: '${AWS_SECRET_ACCESS_KEY}'
           eks-cluster-name: '${EKS_CLUSTER_NAME}'
-          aws-ecr-account-url: '${CONTAINER_REGISTRY_URL}'
+          container-registry-url: '${CONTAINER_REGISTRY_URL}'
 
    
 workflows:
