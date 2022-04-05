@@ -48,15 +48,15 @@ commands:
         type: string
       eks-cluster-name:
         type: string
-      aws-ecr-account-url:
-              type: string
+      deploy-services:
+        type: string
 
     steps:
       - set-aws-environment-variables:
           aws-access-key-id: << parameters.aws-access-key-id >>
           aws-secret-access-key: << parameters.aws-secret-access-key >>
           aws-region: << parameters.aws-region >>
-          aws-ecr-account-url: << parameters.aws-region >>
+          aws-ecr-account-url: << parameters.container-registry-url >>
       - checkout
       - aws-cli/setup:
           aws-region: AWS_REGION
@@ -72,7 +72,7 @@ commands:
 
 jobs:
 
-  deploy-dev:
+  deploy:
     executor: python3
     steps:
 
@@ -81,11 +81,11 @@ jobs:
           aws-access-key-id: '${AWS_ACCESS_KEY_ID}'
           aws-secret-access-key: '${AWS_SECRET_ACCESS_KEY}'
           eks-cluster-name: '${EKS_CLUSTER_NAME}'
-          aws-ecr-account-url: '${CONTAINER_REGISTRY_URL}'
+          container-registry-url: '${CONTAINER_REGISTRY_URL}'
 
    
 workflows:
   
-  deploy-dev:
+  deploy-development:
     jobs:
-      - deploy-dev
+      - deploy
