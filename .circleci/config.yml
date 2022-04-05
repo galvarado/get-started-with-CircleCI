@@ -61,15 +61,14 @@ commands:
       - aws-cli/setup:
           aws-region: AWS_REGION
           profile-name: default
-      - aws-eks/update-kubeconfig-with-authenticator:
-          install-kubectl: true
-          cluster-name: << parameters.eks-cluster-name >>
-          aws-region: << parameters.aws-region >>
       - aws-ecr/ecr-login:
           registry-id: AWS_ECR_REGISTRY_ID
           profile-name: default
           region: AWS_REGION
-      
+      - aws-eks/update-kubeconfig-with-authenticator:
+          install-kubectl: true
+          cluster-name: << parameters.eks-cluster-name >>
+          aws-region: << parameters.aws-region >>
 
 jobs:
 
