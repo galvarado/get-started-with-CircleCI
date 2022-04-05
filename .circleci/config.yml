@@ -38,6 +38,13 @@ commands:
             echo 'export AWS_ECR_REGISTRY_ID=$registry_id' >> $BASH_ENV
             echo $AWS_ECR_REGISTRY_ID
 
+  echo_env:
+   steps:
+      - run:
+          name: Set environment variables
+          command: echo $ENVAR
+
+
   deploy-services:
     parameters:
       aws-region:
@@ -61,6 +68,7 @@ commands:
       - aws-cli/setup:
           aws-region: AWS_REGION
           profile-name: default
+      - echo_env
       - aws-ecr/ecr-login:
           registry-id: AWS_ECR_REGISTRY_ID
           profile-name: default
