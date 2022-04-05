@@ -36,6 +36,7 @@ commands:
             echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >> $BASH_ENV
             registry_id=$(echo $AWS_ECR_ACCOUNT_URL  | awk -F '[/.]' '{print $1}')
             echo 'export AWS_ECR_REGISTRY_ID=$registry_id' >> $BASH_ENV
+            echo $AWS_ECR_REGISTRY_ID
 
   deploy-services:
     parameters:
