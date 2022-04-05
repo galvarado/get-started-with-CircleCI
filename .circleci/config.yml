@@ -34,7 +34,7 @@ commands:
             echo 'export AWS_SECRET_ACCESS_KEY="<< parameters.aws-secret-access-key >>"' >> $BASH_ENV
             echo 'export AWS_REGION="<< parameters.aws-region >>"' >> $BASH_ENV
             echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >> $BASH_ENV
-            registry-id=$(echo $AWS_ECR_ACCOUNT_URL  | awk -F '[/.]' '{print $1}')
+            $registry-id=$(echo $AWS_ECR_ACCOUNT_URL  | awk -F '[/.]' '{print $1}')
             echo 'export AWS_ECR_REGISTRY_ID=$registry-id' >> $BASH_ENV
 
   deploy-services:
