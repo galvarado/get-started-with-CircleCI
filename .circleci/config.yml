@@ -30,12 +30,11 @@ commands:
       - run:
           name: Set environment variables
           command: |
-            echo 'export AWS_ACCESS_KEY_ID="<< parameters.aws-access-key-id >>"' >> $BASH_ENV
-            echo 'export AWS_SECRET_ACCESS_KEY="<< parameters.aws-secret-access-key >>"' >> $BASH_ENV
-            echo 'export AWS_REGION="<< parameters.aws-region >>"' >> $BASH_ENV
-            echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >> $BASH_ENV
             mkdir /tmp/results
-            echo  /tmp/.bash_env* >> /tmp/results/env.txt
+            echo 'export AWS_ACCESS_KEY_ID="<< parameters.aws-access-key-id >>"' >>  /tmp/results/env.txt
+            echo 'export AWS_SECRET_ACCESS_KEY="<< parameters.aws-secret-access-key >>"' >>  /tmp/results/env.txt
+            echo 'export AWS_REGION="<< parameters.aws-region >>"' >>  /tmp/results/env.txt
+            echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >>  /tmp/results/env.txt
       - store_artifacts:
           path: /tmp/results
 
