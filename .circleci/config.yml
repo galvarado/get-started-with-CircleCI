@@ -67,7 +67,7 @@ commands:
       - aws-ecr/ecr-login:
           registry-id: AWS_ECR_REGISTRY_ID
           profile-name: default
-          region: AWS_REGION
+          region: << parameters.aws-region >>
 
 jobs:
 
