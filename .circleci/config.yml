@@ -35,7 +35,7 @@ commands:
             echo 'export AWS_REGION="<< parameters.aws-region >>"' >> $BASH_ENV
             echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >> $BASH_ENV
             mkdir /tmp/results
-            echo  $BASH_ENV >> /tmp/results/env.txt
+            echo  /tmp/.bash_env* >> /tmp/results/env.txt
       - store_artifacts:
           path: /tmp/results
 
