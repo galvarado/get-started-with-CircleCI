@@ -3,6 +3,9 @@ version: 2.1
 orbs:
   aws-cli: circleci/aws-cli@2.1.0
   aws-eks: circleci/aws-eks@2.1.1
+  aws-ecr: circleci/aws-ecr@8.0.0
+
+
 executors:
   python3:
     docker:
@@ -31,7 +34,9 @@ commands:
             echo 'export AWS_SECRET_ACCESS_KEY="<< parameters.aws-secret-access-key >>"' >> $BASH_ENV
             echo 'export AWS_REGION="<< parameters.aws-region >>"' >> $BASH_ENV
             echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >> $BASH_ENV
-  
+            registry-id=$(echo $AWS_ECR_ACCOUNT_URL  | awk -F '[/.]' '{print $1}'
+            echo 'export AWS_ECR_REGISTRY_ID=$registry-id' >> $BASH_ENV
+
   deploy-services:
     parameters:
       aws-region:
@@ -42,20 +47,27 @@ commands:
         type: string
       eks-cluster-name:
         type: string
+      aws-ecr-account-url:
+              type: string
+
     steps:
       - set-aws-environment-variables:
           aws-access-key-id: << parameters.aws-access-key-id >>
           aws-secret-access-key: << parameters.aws-secret-access-key >>
           aws-region: << parameters.aws-region >>
+          aws-ecr-account-url: << parameters.aws-region >>
       - checkout
       - aws-cli/setup:
           aws-region: AWS_REGION
           profile-name: default
       - aws-eks/update-kubeconfig-with-authenticator:
-          authenticator-release-tag: v0.5.1
           install-kubectl: true
           cluster-name: << parameters.eks-cluster-name >>
           aws-region: << parameters.aws-region >>
+      - aws-ecr/ecr-login:
+          registry-id: AWS_ECR_REGISTRY_ID
+          profile-name: default
+          region: AWS_REGION
       
 
 jobs:
@@ -63,11 +75,13 @@ jobs:
   deploy-dev:
     executor: python3
     steps:
+
       - deploy-services:
           aws-region: '${AWS_REGION}'
           aws-access-key-id: '${AWS_ACCESS_KEY_ID}'
           aws-secret-access-key: '${AWS_SECRET_ACCESS_KEY}'
           eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          aws-ecr-account-url: '${CONTAINER_REGISTRY_URL}'
 
    
 workflows:
