@@ -32,7 +32,7 @@ commands:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "Job Successful. :tada:",
+                    "text": "Job Succeeded :white_check_mark:",
                     "emoji": true
                   }
                 },
@@ -91,7 +91,7 @@ commands:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "Job Failed. :red_circle:",
+                    "text": "Job Failed :red_circle:",
                     "emoji": true
                   }
                 },
