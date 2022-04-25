@@ -21,6 +21,7 @@ commands:
 
   notify-slack:
     steps:
+        description: "Custom slack notification"
       - slack/notify:
           event: pass
           custom: |
@@ -40,7 +41,7 @@ commands:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Env*: << parameters.env >>"
+                      "text": "*Env*: some-text"
                     },
                     {
                       "type": "mrkdwn",
@@ -95,7 +96,7 @@ commands:
                     "fields": [
                       {
                         "type": "mrkdwn",
-                        "text": "*Env*: << parameters.env >>"
+                        "text": "*Env*: some-text"
                       },
                       {
                         "type": "mrkdwn",
