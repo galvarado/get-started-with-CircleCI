@@ -19,6 +19,121 @@ commands:
           name: Print a message
           command: echo Hello << parameters.message >> 
 
+commands:
+  notify-slack:
+    steps:
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+              "text": "CircleCI job succeeded!",              
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Job Successful. :tada:",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Env*: << parameters.env >>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Job*: ${CIRCLE_JOB}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch*: $CIRCLE_BRANCH"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Job"
+                      },
+                      "url": "${CIRCLE_BUILD_URL}"
+                    }
+                  ]
+                }
+              ]
+            }
+      - slack/notify:
+          event: fail
+          custom: |           
+              {
+                "text": "CircleCI job failed!",              
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Job Successful. :tada:",
+                      "emoji": true
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Env*: << parameters.env >>"
+                      },
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Job*: ${CIRCLE_JOB}"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                      },
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Branch*: $CIRCLE_BRANCH"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "View Job"
+                        },
+                        "url": "${CIRCLE_BUILD_URL}"
+                      }
+                    ]
+                  }
+                ]
+              }
+
+
 jobs:
   build-and-push-image:
     docker:
@@ -27,23 +142,8 @@ jobs:
     steps:
         - print:
             message: "build and push"
-        - slack/notify:
-            event: always
-            custom: |
-              {
-                "blocks": [
-                  {
-                    "type": "section",
-                    "fields": [
-                      {
-                        "type": "plain_text",
-                        "text": "*This is a text notification*",
-                        "emoji": true
-                      }
-                    ]
-                  }
-                ]
-              }
+
+        - notify-slack
 
 
   deploy-test-env:
@@ -67,12 +167,7 @@ jobs:
     steps:
         - print:
             message: "deploying staging env"
-        - slack/notify:
-            event: fail
-            template: basic_fail_1
-        - slack/notify:
-            event: pass
-            template: success_tagged_deploy_1
+        - notify-slack
 
   integration-tests:
     docker:
@@ -87,12 +182,7 @@ jobs:
               name: Run integration tests
               command: |
                   bash ./.circleci/scripts/integration_test.sh
-        - slack/notify:
-            event: fail
-            template: basic_fail_1
-        - slack/notify:
-            event: pass
-            template: success_tagged_deploy_1
+        - notify-slack
   
   acceptance-tests:
     docker:
@@ -107,12 +197,7 @@ jobs:
               name: Run integration tests
               command: |
                   bash ./.circleci/scripts/acceptance_test.sh  
-        - slack/notify:
-            event: fail
-            template: basic_fail_1
-        - slack/notify:
-            event: pass
-            template: success_tagged_deploy_1
+        - notify-slack
 
 workflows:
   version: 2.1
