@@ -19,7 +19,6 @@ commands:
           name: Print a message
           command: echo Hello << parameters.message >> 
 
-commands:
   notify-slack:
     steps:
       - slack/notify:
