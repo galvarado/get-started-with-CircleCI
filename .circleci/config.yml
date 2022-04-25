@@ -91,7 +91,7 @@ commands:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "Job Successful. :tada:",
+                    "text": "Job Failed. :red_circle:",
                     "emoji": true
                   }
                 },
@@ -201,7 +201,7 @@ jobs:
                   bash ./.circleci/scripts/acceptance_test.sh  
         - notify-success
         - notify-error
-        
+
 workflows:
   version: 2.1
   deploy-staging:
