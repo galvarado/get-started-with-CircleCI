@@ -28,11 +28,22 @@ jobs:
         - print:
             message: "build and push"
         - slack/notify:
-            event: fail
-            template: basic_fail_1
-        - slack/notify:
-            event: pass
-            template: success_tagged_deploy_1
+            event: always
+            custom: |
+              {
+                "blocks": [
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "plain_text",
+                        "text": "*This is a text notification*",
+                        "emoji": true
+                      }
+                    ]
+                  }
+                ]
+              }
 
 
   deploy-test-env:
