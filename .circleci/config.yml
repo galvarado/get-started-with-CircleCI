@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs: 
+  slack: circleci/slack@4.9.3
+
 executors:
   nodejs-executor:
     docker:
