@@ -24,6 +24,12 @@ jobs:
     steps:
         - print:
             message: "build and push"
+        - slack/notify:
+            event: fail
+            template: basic_fail_1
+        - slack/notify:
+            event: pass
+            template: success_tagged_deploy_1
 
 
   deploy-test-env:
@@ -33,6 +39,12 @@ jobs:
     steps:
         - print:
             message: "deploying test env"
+        - slack/notify:
+            event: fail
+            template: basic_fail_1
+        - slack/notify:
+            event: pass
+            template: success_tagged_deploy_1
 
   deploy-to-staging:
     docker:
@@ -41,6 +53,12 @@ jobs:
     steps:
         - print:
             message: "deploying staging env"
+        - slack/notify:
+            event: fail
+            template: basic_fail_1
+        - slack/notify:
+            event: pass
+            template: success_tagged_deploy_1
 
   integration-tests:
     docker:
@@ -55,6 +73,13 @@ jobs:
               name: Run integration tests
               command: |
                   bash ./.circleci/scripts/integration_test.sh
+        - slack/notify:
+            event: fail
+            template: basic_fail_1
+        - slack/notify:
+            event: pass
+            template: success_tagged_deploy_1
+  
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4
@@ -68,51 +93,33 @@ jobs:
               name: Run integration tests
               command: |
                   bash ./.circleci/scripts/acceptance_test.sh  
+        - slack/notify:
+            event: fail
+            template: basic_fail_1
+        - slack/notify:
+            event: pass
+            template: success_tagged_deploy_1
+
 workflows:
   version: 2.1
   deploy-staging:
       jobs:
           - build-and-push-image:
-              filters:
-                tags:
-                  only: /^staging$/
-                # Exclude commits on all branches
-                branches:
-                  ignore: /.*/
+             
           - deploy-test-env:
               requires:
                 - build-and-push-image
-              filters:
-                tags:
-                  only: /^staging$/
-                # Exclude commits on all branches
-                branches:
-                  ignore: /.*/
+         
           - deploy-to-staging:
               requires:
                 - build-and-push-image
-              filters:
-                tags:
-                  only: /^staging$/
-                # Exclude commits on all branches
-                branches:
-                  ignore: /.*/
+             
           - integration-tests:
               requires:
                 - deploy-test-env
-              filters:
-                tags:
-                  only: /^staging$/
-                # Exclude commits on all branches
-                branches:
-                  ignore: /.*/
+            
           - acceptance-tests:
               requires:
                 - deploy-to-staging
-              filters:
-                tags:
-                  only: /^staging$/
-                # Exclude commits on all branches
-                branches:
-                  ignore: /.*/
+          
           
