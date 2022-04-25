@@ -20,8 +20,8 @@ commands:
           command: echo Hello << parameters.message >> 
 
   notify-slack:
+    description: "Custom slack notification"
     steps:
-        description: "Custom slack notification"
       - slack/notify:
           event: pass
           custom: |
