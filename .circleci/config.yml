@@ -19,7 +19,7 @@ commands:
           name: Print a message
           command: echo Hello << parameters.message >> 
 
-  notify-slack:
+  notify-success:
     description: "Custom slack notification"
     steps:
       - slack/notify:
@@ -77,61 +77,66 @@ commands:
                 }
               ]
             }
+
+  notify-error:
+    description: "Custom slack notification"
+    steps:
       - slack/notify:
           event: fail
-          custom: |           
-              {
-                "text": "CircleCI job failed!",              
-                "blocks": [
-                  {
-                    "type": "header",
-                    "text": {
-                      "type": "plain_text",
-                      "text": "Job Successful. :tada:",
-                      "emoji": true
-                    }
-                  },
-                  {
-                    "type": "section",
-                    "fields": [
-                      {
-                        "type": "mrkdwn",
-                        "text": "*Env*: some-text"
-                      },
-                      {
-                        "type": "mrkdwn",
-                        "text": "*Job*: ${CIRCLE_JOB}"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "section",
-                    "fields": [
-                      {
-                        "type": "mrkdwn",
-                        "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
-                      },
-                      {
-                        "type": "mrkdwn",
-                        "text": "*Branch*: $CIRCLE_BRANCH"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "actions",
-                    "elements": [
-                      {
-                        "type": "button",
-                        "text": {
-                          "type": "plain_text",
-                          "text": "View Job"
-                        },
-                        "url": "${CIRCLE_BUILD_URL}"
-                      }
-                    ]
+          custom: |
+            {
+              "text": "CircleCI job failed!",              
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Job Successful. :tada:",
+                    "emoji": true
                   }
-                ]
-              }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Env*: some-text"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Job*: ${CIRCLE_JOB}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch*: $CIRCLE_BRANCH"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Job"
+                      },
+                      "url": "${CIRCLE_BUILD_URL}"
+                    }
+                  ]
+                }
+              ]
+            }
+     
 
 
 jobs:
@@ -143,7 +148,8 @@ jobs:
         - print:
             message: "build and push"
 
-        - notify-slack
+        - notify-success
+        - notify-error
 
 
   deploy-test-env:
@@ -153,13 +159,9 @@ jobs:
     steps:
         - print:
             message: "deploying test env"
-        - slack/notify:
-            event: fail
-            template: basic_fail_1
-        - slack/notify:
-            event: pass
-            template: success_tagged_deploy_1
-
+        - notify-success
+        - notify-error
+        
   deploy-to-staging:
     docker:
         - image:  cimg/python:3.8.4
@@ -167,8 +169,8 @@ jobs:
     steps:
         - print:
             message: "deploying staging env"
-        - notify-slack
-
+        - notify-success
+        - notify-error
   integration-tests:
     docker:
         - image:  cimg/python:3.8.4
@@ -182,8 +184,8 @@ jobs:
               name: Run integration tests
               command: |
                   bash ./.circleci/scripts/integration_test.sh
-        - notify-slack
-  
+        - notify-success
+        - notify-error  
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4
@@ -197,8 +199,9 @@ jobs:
               name: Run integration tests
               command: |
                   bash ./.circleci/scripts/acceptance_test.sh  
-        - notify-slack
-
+        - notify-success
+        - notify-error
+        
 workflows:
   version: 2.1
   deploy-staging:
