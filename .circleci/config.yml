@@ -1,91 +1,118 @@
 version: 2.1
 
-orbs:
-  aws-cli: circleci/aws-cli@2.1.0
-  aws-eks: circleci/aws-eks@2.1.1
-  aws-ecr: circleci/aws-ecr@8.0.0
-
-
 executors:
-  python3:
+  nodejs-executor:
     docker:
-      - image: 'cimg/python:3.10'
+      - image: circleci/node:14.4.0
 
 commands:
-  set-aws-environment-variables:
-    description: |
-      Set environment variables so that they can be used in each step of a job.
-      https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
+  print:
+    description: "A simple echo"
     parameters:
-      aws-access-key-id:
+      message:
         type: string
-      aws-secret-access-key:
-        type: string
-      aws-region:
-        type: string
-      aws-ecr-account-url:
-        type: string
-        default: ''
     steps:
       - run:
-          name: Set environment variables
-          command: |
-            mkdir /tmp/results
-            echo 'export AWS_ACCESS_KEY_ID="<< parameters.aws-access-key-id >>"' >>  /tmp/results/env.txt
-            echo 'export AWS_SECRET_ACCESS_KEY="<< parameters.aws-secret-access-key >>"' >>  /tmp/results/env.txt
-            echo 'export AWS_REGION="<< parameters.aws-region >>"' >>  /tmp/results/env.txt
-            echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >>  /tmp/results/env.txt
-      - store_artifacts:
-          path: /tmp/results
-
-  deploy-services:
-    parameters:
-      aws-region:
-        type: string
-      aws-access-key-id:
-        type: string
-      aws-secret-access-key:
-        type: string
-      eks-cluster-name:
-        type: string
-      container-registry-url:
-        type: string
-
-    steps:
-      - set-aws-environment-variables:
-          aws-access-key-id: << parameters.aws-access-key-id >>
-          aws-secret-access-key: << parameters.aws-secret-access-key >>
-          aws-region: << parameters.aws-region >>
-          aws-ecr-account-url: << parameters.container-registry-url >>
-      - checkout
-      - aws-cli/setup:
-          aws-region: AWS_REGION
-          profile-name: default
-      - aws-eks/update-kubeconfig-with-authenticator:
-          install-kubectl: true
-          cluster-name: << parameters.eks-cluster-name >>
-          aws-region: << parameters.aws-region >>
-      - aws-ecr/ecr-login:
-          registry-id: AWS_ECR_REGISTRY_ID
-          profile-name: default
-          region: << parameters.aws-region >>
+          name: Print a message
+          command: echo Hello << parameters.message >> 
 
 jobs:
+  build-and-push-image:
+    docker:
+        - image:  cimg/python:3.8.4
 
-  deploy:
-    executor: python3
     steps:
+        - print:
+            message: "build and push"
 
-      - deploy-services:
-          aws-region: '${AWS_REGION}'
-          aws-access-key-id: '${AWS_ACCESS_KEY_ID}'
-          aws-secret-access-key: '${AWS_SECRET_ACCESS_KEY}'
-          eks-cluster-name: '${EKS_CLUSTER_NAME}'
-          container-registry-url: '${CONTAINER_REGISTRY_URL}'
 
-   
+  deploy-test-env:
+    docker:
+        - image:  cimg/python:3.8.4
+
+    steps:
+        - print:
+            message: "deploying test env"
+
+  deploy-to-staging:
+    docker:
+        - image:  cimg/python:3.8.4
+
+    steps:
+        - print:
+            message: "deploying staging env"
+
+  integration-tests:
+    docker:
+        - image:  cimg/python:3.8.4
+
+    steps:
+        - checkout
+        - print:
+            message: "running integration tests"
+
+        - run:
+              name: Run integration tests
+              command: |
+                  bash ./.circleci/scripts/integration_test.sh
+  acceptance-tests:
+    docker:
+        - image:  cimg/python:3.8.4
+
+    steps:
+        - checkout
+        - print:
+            message: "running acceptance tests"
+
+        - run:
+              name: Run integration tests
+              command: |
+                  bash ./.circleci/scripts/acceptance_test.sh  
 workflows:
-  
-  deploy-development:
-    jobs:
-      - deploy
+  version: 2.1
+  deploy-staging:
+      jobs:
+          - build-and-push-image:
+              filters:
+                tags:
+                  only: /^staging$/
+                # Exclude commits on all branches
+                branches:
+                  ignore: /.*/
+          - deploy-test-env:
+              requires:
+                - build-and-push-image
+              filters:
+                tags:
+                  only: /^staging$/
+                # Exclude commits on all branches
+                branches:
+                  ignore: /.*/
+          - deploy-to-staging:
+              requires:
+                - build-and-push-image
+              filters:
+                tags:
+                  only: /^staging$/
+                # Exclude commits on all branches
+                branches:
+                  ignore: /.*/
+          - integration-tests:
+              requires:
+                - deploy-test-env
+              filters:
+                tags:
+                  only: /^staging$/
+                # Exclude commits on all branches
+                branches:
+                  ignore: /.*/
+          - acceptance-tests:
+              requires:
+                - deploy-to-staging
+              filters:
+                tags:
+                  only: /^staging$/
+                # Exclude commits on all branches
+                branches:
+                  ignore: /.*/
+          
