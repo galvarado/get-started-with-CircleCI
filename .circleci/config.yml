@@ -42,7 +42,6 @@ commands:
                     {
                       "type": "mrkdwn",
                       "text": "Date: $(date +'%m/%d/%Y %T')"
-"
                     },
                     {
                       "type": "mrkdwn",
