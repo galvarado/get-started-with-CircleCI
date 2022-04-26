@@ -41,7 +41,8 @@ commands:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Env*: some-text"
+                      "text": "Date: $(date +'%m/%d/%Y %T')"
+"
                     },
                     {
                       "type": "mrkdwn",
@@ -110,7 +111,7 @@ commands:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Env*: some-text"
+                      "text": "Date: $(date +'%m/%d/%Y %T')"
                     },
                     {
                       "type": "mrkdwn",
