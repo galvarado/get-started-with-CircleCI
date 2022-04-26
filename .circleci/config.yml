@@ -40,8 +40,8 @@ commands:
                   "type": "section",
                   "fields": [
                     {
-                      "type": "mrkdwn",
-                      "text": "Date: $(date +'%m/%d/%Y %T')"
+                        "type": "mrkdwn",
+                        "text": "*Tag*: $CIRCLE_TAG"
                     },
                     {
                       "type": "mrkdwn",
@@ -109,8 +109,8 @@ commands:
                   "type": "section",
                   "fields": [
                     {
-                      "type": "mrkdwn",
-                      "text": "Date: $(date +'%m/%d/%Y %T')"
+                        "type": "mrkdwn",
+                        "text": "*Tag*: $CIRCLE_TAG"
                     },
                     {
                       "type": "mrkdwn",
