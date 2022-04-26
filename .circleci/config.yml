@@ -133,15 +133,6 @@ commands:
                   ]
                 },
                 {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Error*: << parameters.message >> "
-                    },
-                  ]
-                },
-                {
                   "type": "actions",
                   "elements": [
                     {
