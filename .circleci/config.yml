@@ -81,6 +81,10 @@ commands:
 
   notify-error:
     description: "Custom slack notification"
+    parameters:
+      message:
+        type: string
+        default: ""
     steps:
       - slack/notify:
           event: fail
@@ -201,7 +205,8 @@ jobs:
               command: |
                   bash ./.circleci/scripts/acceptance_test.sh  
         - notify-success
-        - notify-error
+        - notify-error:
+            message: "Some error"
 
 workflows:
   version: 2.1
