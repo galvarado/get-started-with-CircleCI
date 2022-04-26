@@ -101,6 +101,9 @@ commands:
                   }
                 },
                 {
+                  "type": "divider"
+                },
+                {
                   "type": "section",
                   "fields": [
                     {
@@ -119,6 +122,19 @@ commands:
                     {
                       "type": "mrkdwn",
                       "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch*: $CIRCLE_BRANCH"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Error*: << parameters.message >> "
                     },
                     {
                       "type": "mrkdwn",
