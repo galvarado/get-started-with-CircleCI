@@ -32,7 +32,7 @@ commands:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "${CIRCLE_JOB} Job Succeeded :white_check_mark:",
+                    "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
                     "emoji": true
                   }
                 },
@@ -41,7 +41,7 @@ commands:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Job*: ${CIRCLE_JOB}"
+                      "text": "*User*: ${CIRCLE_PROJECT_USERNAME}"
                     },
                     {
                       "type": "mrkdwn",
@@ -92,7 +92,7 @@ commands:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "${CIRCLE_JOB} Job Failed :red_circle:",
+                    "text": "A ${CIRCLE_JOB} job has failed :red_circle:",
                     "emoji": true
                   }
                 },
@@ -101,7 +101,7 @@ commands:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Job*: ${CIRCLE_JOB}"
+                      "text": "*User*: ${CIRCLE_PROJECT_USERNAME}"
                     },
                     {
                       "type": "mrkdwn",
