@@ -37,6 +37,9 @@ commands:
                   }
                 },
                 {
+                  "type": "divider"
+                },
+                {
                   "type": "section",
                   "fields": [
                     {
@@ -136,10 +139,6 @@ commands:
                       "type": "mrkdwn",
                       "text": "*Error*: << parameters.message >> "
                     },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch*: $CIRCLE_BRANCH"
-                    }
                   ]
                 },
                 {
@@ -206,7 +205,8 @@ jobs:
               command: |
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
-        - notify-error  
+        - notify-error:
+            message: "Some error"
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4
