@@ -32,7 +32,7 @@ commands:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "Job Succeeded :white_check_mark:",
+                    "text": "${CIRCLE_JOB} Job Succeeded :white_check_mark:",
                     "emoji": true
                   }
                 },
@@ -45,7 +45,7 @@ commands:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Build Number*: ${CIRCLE_BUILD_NUM}"
+                      "text": "*Job Number*: ${CIRCLE_BUILD_NUM}"
 
                     }
                   ]
@@ -92,7 +92,7 @@ commands:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "Job Failed :red_circle:",
+                    "text": "${CIRCLE_JOB} Job Failed :red_circle:",
                     "emoji": true
                   }
                 },
@@ -105,7 +105,7 @@ commands:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Build Number*: ${CIRCLE_BUILD_NUM}"
+                      "text": "*Job Number*: ${CIRCLE_BUILD_NUM}"
                     }
                   ]
                 },
