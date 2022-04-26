@@ -129,6 +129,10 @@ commands:
                     {
                       "type": "mrkdwn",
                       "text": "*Branch*: $CIRCLE_BRANCH"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Error*:  << parameters.message >> "
                     }
                   ]
                 },
