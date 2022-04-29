@@ -199,11 +199,11 @@ jobs:
               name: Run integration tests
               command: |
                   FAILING_TESTS = "Error502"
-                  echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
+                  echo export FAILING_TESTS=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
         - notify-error:
-            message: "Some error"
+            message: '$FAILING_TESTS'
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4
@@ -214,7 +214,7 @@ jobs:
             message: "running acceptance tests"
 
         - run:
-              name: Run integration tests
+              name: Run acceptsance tests
               command: |
                   bash ./.circleci/scripts/acceptance_test.sh  
         - notify-success
