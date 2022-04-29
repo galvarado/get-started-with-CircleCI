@@ -203,7 +203,7 @@ jobs:
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
         - notify-error:
-            message: '$FAILING_TESTS'
+            message: '$TESTS_FAIL_MESSAGE'
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4
