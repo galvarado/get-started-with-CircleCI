@@ -27,17 +27,22 @@ commands:
           custom: |
             {
               "blocks": [
-                 {
-                  "type": "divider"
-                },
+                
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
                       "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                    },
+                     {
+                      "type": "mrkdwn",
+                      "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
                     }
                   ]
+                },
+                 {
+                  "type": "divider"
                 },
                 {
                   "type": "actions",
