@@ -26,14 +26,13 @@ commands:
           event: pass
           custom: |
             {
-              "text": "CircleCI job succeeded!",              
               "blocks": [
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
+                      "text": "A ${CIRCLE_JOB} job has succeeded :white_check_mark:",
                     }
                   ]
                 },
@@ -73,18 +72,18 @@ commands:
         default: ""
     steps:
       - slack/notify:
-          event: fail
+          event: pass
           custom: |
             {
-              "text": "CircleCI job failed!",              
               "blocks": [
                 {
-                  "type": "text",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "A ${CIRCLE_JOB} job has failed :red_circle:",
-                    "emoji": true
-                  }
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "A ${CIRCLE_JOB} job has failed :red_circle:",
+                    }
+                  ]
                 },
                 {
                   "type": "divider"
@@ -94,28 +93,7 @@ commands:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*User*: ${CIRCLE_PROJECT_USERNAME}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Job Number*: ${CIRCLE_BUILD_NUM}"
-                    }
-                  ]
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
                       "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch*: $CIRCLE_BRANCH"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Error*:  << parameters.message >> "
                     }
                   ]
                 },
