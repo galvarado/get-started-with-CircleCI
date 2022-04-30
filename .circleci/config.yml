@@ -34,8 +34,7 @@ commands:
                     {
                       "type": "mrkdwn",
                       "text": "A $CIRCLE_JOB job has succedded! on CIRCLE_PROJECT_REPONAME"
-                    },
-                    
+                    }                    
                   ]
                 },
                  {
