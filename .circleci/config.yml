@@ -42,7 +42,7 @@ commands:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Project:* CIRCLE_PROJECT_REPONAME"
+                      "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
                     }                     
                   ]
                 },
