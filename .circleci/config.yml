@@ -27,17 +27,13 @@ commands:
           custom: |
             {
               "blocks": [
-                
+
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
-                    },
-                     {
-                      "type": "mrkdwn",
-                      "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                      "text": "A : $CIRCLE_JOB job has succedded on $CIRCLE_PROJECT_REPONAME"
                     }
                   ]
                 },
