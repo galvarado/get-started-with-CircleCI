@@ -29,7 +29,7 @@ commands:
               "text": "CircleCI job succeeded!",              
               "blocks": [
                 {
-                  "type": "header",
+                  "type": "text",
                   "text": {
                     "type": "plain_text",
                     "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
@@ -38,31 +38,13 @@ commands:
                 },
                 {
                   "type": "divider"
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*User*: ${CIRCLE_PROJECT_USERNAME}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Job Number*: ${CIRCLE_BUILD_NUM}"
-
-                    }
-                  ]
-                },
+                }.
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
                       "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch*: $CIRCLE_BRANCH"
                     }
                   ]
                 },
