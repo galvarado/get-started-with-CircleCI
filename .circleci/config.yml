@@ -30,12 +30,11 @@ commands:
 
                 {
                   "type": "section",
-                  "fields": [
-                    {
+                  "text": {
                       "type": "mrkdwn",
                       "text": "A $CIRCLE_JOB job has succedded!"
                     }                
-                  ]
+                  }
                 },
                   {
                   "type": "section",
