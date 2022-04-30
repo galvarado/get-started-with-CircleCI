@@ -112,16 +112,7 @@ commands:
                       "text": "*Branch*: $CIRCLE_BRANCH"
                     },
                     {
-                      "type": "mrkdwn",
-                      "text": "*Error*:  << parameters.message >> "
-                    }
-                  ]
-                },
-                {
-                  "type": "actions",
-                  "elements": [
-                    {
-                      "type": "button",
+                      "type": "mrkdwn",]
                       "text": {
                         "type": "plain_text",
                         "text": "View Job"
@@ -189,7 +180,7 @@ jobs:
             message: '$TESTS_FAIL_MESSAGE'
   acceptance-tests:
     docker:
-        - image:  cimg/python:3.8.4
+        - image:  cimg/python:3.8.4 
 
     steps:
         - checkout
