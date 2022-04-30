@@ -78,7 +78,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "A $CIRCLE_JOB job has succedded :white_check_mark:"
+                    "text": "A $CIRCLE_JOB job has failed :circle_red:"
                   }
                 },
                 {
@@ -159,7 +159,9 @@ jobs:
               command: |
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
-        - notify-error
+        - notify-error:
+            message: "Some error"  
+            
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4 
