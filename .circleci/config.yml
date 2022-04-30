@@ -32,7 +32,7 @@ commands:
                   "fields": [
                     {
                     "type": "plain_text",
-                    "text": "A ${CIRCLE_JOB} job has Succeeded ",
+                      "text": "A $CIRCLE_JOB job has ucceeded ",
                     },
                   ]
                 },
