@@ -31,7 +31,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "A $CIRCLE_JOB job has succedded!"
+                    "text": "A $CIRCLE_JOB job has succedded :white_check_mark:"
                   }
                 },
                 {
