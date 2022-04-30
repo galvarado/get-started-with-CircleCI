@@ -27,13 +27,13 @@ commands:
           custom: |
             {
               "blocks": [
-                {
+                 {
                   "type": "section",
                   "fields": [
                     {
                     "type": "plain_text",
-                      "text": "A $CIRCLE_JOB job has ucceeded ",
-                    },
+                    "text": "LOL ",
+                    }
                   ]
                 },
                  {
