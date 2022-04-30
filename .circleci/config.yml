@@ -71,44 +71,33 @@ commands:
       - slack/notify:
           event: fail
           custom: |
-            {]
+           custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "A $CIRCLE_JOB job has failed :circle_red:"
+                  }
+                },
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                    "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
-                    }
+                      "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
+                    }                     
                   ]
                 },
+                 {
                   "type": "divider"
                 },
                 {
-                  "type": "section",
-                  "fields": [
+                  "type": "actions",
+                  "elements": [
                     {
-                      "type": "mrkdwn",
-                      "text": "*User*: ${CIRCLE_PROJECT_USERNAME}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Job Number*: ${CIRCLE_BUILD_NUM}"
-                    }
-                  ]
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch*: $CIRCLE_BRANCH"
-                    },
-                    {
-                      "type": "mrkdwn",]
+                      "type": "button",
                       "text": {
                         "type": "plain_text",
                         "text": "View Job"
