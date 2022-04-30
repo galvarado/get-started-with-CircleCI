@@ -27,16 +27,14 @@ commands:
           custom: |
             {
               "blocks": [
-
                 {
                   "type": "section",
                   "text": {
-                      "type": "mrkdwn",
-                      "text": "A $CIRCLE_JOB job has succedded!"
-                    }                
+                    "type": "mrkdwn",
+                    "text": "A $CIRCLE_JOB job has succedded!"
                   }
                 },
-                  {
+                {
                   "type": "section",
                   "fields": [
                     {
@@ -73,9 +71,7 @@ commands:
       - slack/notify:
           event: fail
           custom: |
-            {
-              "text": "CircleCI job failed!",              
-              "blocks": [
+            {]
                 {
                   "type": "section",
                   "fields": [
