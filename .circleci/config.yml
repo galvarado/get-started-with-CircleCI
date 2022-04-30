@@ -28,14 +28,16 @@ commands:
             {
               "text": "CircleCI job succeeded!",              
               "blocks": [
-                {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
-                    "emoji": true
-                  }
-                },
+                 {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
+                        "emoji": true
+                      }
+                    ]
+                  },
                 {
                   "type": "divider"
                 },
