@@ -26,19 +26,15 @@ commands:
           event: pass
           custom: |
             {
+              "text": "CircleCI job succeeded!",              
               "blocks": [
-               {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*User*: ${CIRCLE_PROJECT_USERNAME}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Job Number*: ${CIRCLE_BUILD_NUM}"
-                    }
-                  ]
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
+                    "emoji": true
+                  }
                 },
                 {
                   "type": "divider"
@@ -97,6 +93,14 @@ commands:
             {
               "text": "CircleCI job failed!",              
               "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "A ${CIRCLE_JOB} job has failed :red_circle:",
+                    "emoji": true
+                  }
+                },
                 {
                   "type": "divider"
                 },
