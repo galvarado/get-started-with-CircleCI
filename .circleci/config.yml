@@ -28,15 +28,6 @@ commands:
             {
               "blocks": [
                  {
-                  "type": "section",
-                  "fields": [
-                    {
-                    "type": "plain_text",
-                    "text": "LOL ",
-                    }
-                  ]
-                },
-                 {
                   "type": "divider"
                 },
                 {
