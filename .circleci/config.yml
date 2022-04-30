@@ -61,6 +61,7 @@ commands:
                 }
               ]
             }
+            
   notify-error:
     description: "Custom slack notification"
     parameters:
@@ -71,14 +72,13 @@ commands:
       - slack/notify:
           event: fail
           custom: |
-           custom: |
             {
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "A $CIRCLE_JOB job has failed :circle_red:"
+                    "text": "A $CIRCLE_JOB job has succedded :white_check_mark:"
                   }
                 },
                 {
