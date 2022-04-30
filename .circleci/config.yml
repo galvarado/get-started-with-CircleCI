@@ -32,7 +32,7 @@ commands:
                   "type": "section",
                   "fields": [
                     {
-                      "type": "mrkdwn",
+                    "type": "plain_text",
                     "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
                     }
                   ]
