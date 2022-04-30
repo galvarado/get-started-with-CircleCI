@@ -27,7 +27,6 @@ commands:
           custom: |
             {
               "blocks": [
-                {
                {
                   "type": "section",
                   "fields": [
