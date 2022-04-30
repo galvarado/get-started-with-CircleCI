@@ -157,8 +157,7 @@ jobs:
         - run:
               name: Run integration tests
               command: |
-                  FAILING_TESTS="Error502"
-                  echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
+                  echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! \" >> $BASH_ENV
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
         - notify-error:
