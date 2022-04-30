@@ -29,15 +29,6 @@ commands:
               "text": "CircleCI job succeeded!",              
               "blocks": [
                 {
-                  "type": "section",
-                  "fields": [
-                    {
-                    "type": "plain_text",
-                    "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
-                    }
-                  ]
-                },
-                {
                   "type": "divider"
                 },
                 {
