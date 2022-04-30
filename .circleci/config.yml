@@ -91,15 +91,15 @@ commands:
           event: fail
           custom: |
             {
-              "text": "CircleCI job failed!",              
               "blocks": [
                 {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "A ${CIRCLE_JOB} job has failed :red_circle:",
-                    "emoji": true
-                  }
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "A ${CIRCLE_JOB} job has Succeeded :white_check_mark:",
+                    }
+                  ]
                 },
                 {
                   "type": "divider"
