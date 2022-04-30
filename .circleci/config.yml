@@ -78,7 +78,7 @@ commands:
               "text": "CircleCI job failed!",              
               "blocks": [
                 {
-                  "type": "header",
+                  "type": "text",
                   "text": {
                     "type": "plain_text",
                     "text": "A ${CIRCLE_JOB} job has failed :red_circle:",
