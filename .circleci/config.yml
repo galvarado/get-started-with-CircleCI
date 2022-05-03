@@ -38,7 +38,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Project:*"
+                    "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
                   },
                   "accessory": {
                     "type": "button",
@@ -77,12 +77,20 @@ commands:
                 },
                 {
                   "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
-                    }             
-                  ]
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Job"
+                    },
+                    "value": "view_job",
+                    "url": "${CIRCLE_BUILD_URL}",
+                    "action_id": "button-action"
+                  }
                 }
               ]
             }
