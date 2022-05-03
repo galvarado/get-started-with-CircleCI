@@ -79,7 +79,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
+                    "text": "*Project:* << parameters.message >>"
                   },
                   "accessory": {
                     "type": "button",
@@ -143,10 +143,15 @@ jobs:
         - run:
               name: Run integration tests
               command: |
+                  NUMBER_OF_FAILING_TESTS=1
+                  FAILING_TESTS="Errors"
+                  echo $NUMBER_OF_FAILING_TESTS
+                  echo "${FAILING_TESTS}"
+                  echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
         - notify-error:
-            message: "Some error"  
+            message: '${TESTS_FAIL_MESSAGE}'  
             
   acceptance-tests:
     docker:
