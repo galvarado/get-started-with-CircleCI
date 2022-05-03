@@ -79,15 +79,7 @@ commands:
                     {
                       "type": "mrkdwn",
                       "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
-                    }                     
-                  ]
-                },
-                 {
-                  "type": "divider"
-                },
-                {
-                  "type": "actions",
-                  "elements": [
+                    },
                     {
                       "type": "button",
                       "text": {
@@ -95,7 +87,7 @@ commands:
                         "text": "View Job"
                       },
                       "url": "${CIRCLE_BUILD_URL}"
-                    }
+                    }                     
                   ]
                 }
               ]
