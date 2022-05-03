@@ -36,15 +36,26 @@ commands:
                 },
                 {
                   "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
-                    }              
-                  ]
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Job",
+                      "emoji": true
+                    },
+                    "value": "view_job",
+                      "url": "${CIRCLE_BUILD_URL}"
+                    "action_id": "button-action"
+                  }
                 }
               ]
             }
+            
+            
             
   notify-error:
     description: "Custom slack notification"
