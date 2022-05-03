@@ -47,7 +47,7 @@ commands:
                       "text": "View Job"
                     },
                     "value": "view_job",
-                    "url": "${CIRCLE_BUILD_URL}"
+                    "url": "${CIRCLE_BUILD_URL}",
                     "action_id": "button-action"
                   }
                 }
