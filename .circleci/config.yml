@@ -31,24 +31,23 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "A $CIRCLE_JOB job has succedded :white_check_mark:"
+                    "text": "A $CIRCLE_JOB job has succeeded :white_check_mark:"
                   }
                 },
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
+                    "text": "This is a section block with a button."
                   },
                   "accessory": {
                     "type": "button",
                     "text": {
                       "type": "plain_text",
-                      "text": "View Job",
-                      "emoji": true
+                      "text": "View Job"
                     },
                     "value": "view_job",
-                      "url": "${CIRCLE_BUILD_URL}"
+                    "url": "${CIRCLE_BUILD_URL}"
                     "action_id": "button-action"
                   }
                 }
