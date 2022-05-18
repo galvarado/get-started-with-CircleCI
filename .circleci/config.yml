@@ -151,7 +151,15 @@ jobs:
               name: Run integration tests
               command: |
                   NUMBER_OF_FAILING_TESTS=1
-                  FAILING_TESTS="Errors"
+                  FAILING_TESTS="1 failing
+                                      1 failing
+
+                                      1) Acceptance: Deposits
+                                          [Contract / Blockchain Interaction]
+                                            (wait for deposit transactions to complete):
+                                        Error: Timeout of 30000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves. (/code/dist/tests/acceptance/z-api-deposits.js)
+                                          at listOnTimeout (node:internal/timers:559:17)
+                                          at processTimers (node:internal/timers:502:7)"
                   echo $NUMBER_OF_FAILING_TESTS
                   echo "${FAILING_TESTS}"
                   echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
