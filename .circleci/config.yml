@@ -96,7 +96,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "$TESTS_FAIL_MESSAGE"
+                    "text": "$LOL"
                   }
                 }
               ]
