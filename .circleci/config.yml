@@ -1,84 +1,202 @@
 version: 2.1
 
-orbs:
-  aws-cli: circleci/aws-cli@1.3.0
-  aws-eks: circleci/aws-eks@1.2.0
-  kubernetes: circleci/kubernetes@1.3.0
-
+orbs: 
+  slack: circleci/slack@4.9.3
 
 executors:
-  python3:
+  nodejs-executor:
     docker:
-      - image: 'cimg/python:3.10'
+      - image: circleci/node:14.4.0
 
 commands:
-  set-aws-environment-variables:
-    description: |
-      Set environment variables so that they can be used in each step of a job.
-      https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
+  print:
+    description: "A simple echo"
     parameters:
-      aws-access-key-id:
+      message:
         type: string
-      aws-secret-access-key:
-        type: string
-      aws-region:
-        type: string
-      aws-ecr-account-url:
-        type: string
-        default: ''
     steps:
       - run:
-          name: Set environment variables
-          command: |
-            echo 'export AWS_ACCESS_KEY_ID="<< parameters.aws-access-key-id >>"' >> $BASH_ENV
-            echo 'export AWS_SECRET_ACCESS_KEY="<< parameters.aws-secret-access-key >>"' >> $BASH_ENV
-            echo 'export AWS_REGION="<< parameters.aws-region >>"' >> $BASH_ENV
-            echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >> $BASH_ENV
-  
-  deploy-services:
-    parameters:
-      aws-region:
-        type: string
-      aws-access-key-id:
-        type: string
-      aws-secret-access-key:
-        type: string
-      container-registry-url:
-        type: string
-      eks-cluster-name:
-        type: string
+          name: Print a message
+          command: echo Hello << parameters.message >> 
+
+  notify-success:
+    description: "Custom slack notification"
     steps:
-      - set-aws-environment-variables:
-          aws-access-key-id: << parameters.aws-access-key-id >>
-          aws-secret-access-key: << parameters.aws-secret-access-key >>
-          aws-region: << parameters.aws-region >>
-      - checkout
-      - aws-cli/setup:
-          aws-region: AWS_REGION
-          profile-name: default
-      - kubernetes/install-kubectl:
-          kubectl-version: "v1.23.5"
-      - aws-eks/update-kubeconfig-with-authenticator:
-          authenticator-release-tag: 'v0.5.3'
-          cluster-name: << parameters.eks-cluster-name >>
-          aws-region: << parameters.aws-region >>
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "A $CIRCLE_JOB job has succeeded :white_check_mark:"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Job"
+                    },
+                    "value": "view_job",
+                    "url": "${CIRCLE_BUILD_URL}",
+                    "action_id": "button-action"
+                  }
+                }
+              ]
+            }
+            
+            
+            
+  notify-error:
+    description: "Custom slack notification"
+    parameters:
+      message:
+        type: string
+        default: ""
+    steps:
+      - slack/notify:
+          event: fail
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "A $CIRCLE_JOB job has failed :red_circle:"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Project:* $CIRCLE_PROJECT_REPONAME"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Job"
+                    },
+                    "value": "view_job",
+                    "url": "${CIRCLE_BUILD_URL}",
+                    "action_id": "button-action"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "<<parameters.message>>"
+                  }
+                }
+              ]
+            }
+
+
+     
 
 
 jobs:
+  build-and-push-image:
+    docker:
+        - image:  cimg/python:3.8.4
 
-  deploy-dev:
-    executor: python3
     steps:
-      - deploy-services:
-          aws-region: '${AWS_REGION}'
-          aws-access-key-id: '${P9_DEV_PRIVATE_1_AWS_ACCESS_KEY_ID}'
-          aws-secret-access-key: '${P9_DEV_PRIVATE_1_AWS_SECRET_ACCESS_KEY}'
-          container-registry-url: '${P9_DEV_PRIVATE_1_CONTAINER_REGISTRY_URL}'
-          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+        - print:
+            message: "build and push"
 
+        - notify-success
+        - notify-error
+
+
+  deploy-test-env:
+    docker:
+        - image:  cimg/python:3.8.4
+
+    steps:
+        - print:
+            message: "deploying test env"
+        - notify-success
+        - notify-error
+        
+  deploy-to-staging:
+    docker:
+        - image:  cimg/python:3.8.4
+
+    steps:
+        - print:
+            message: "deploying staging env"
+        - notify-success
+        - notify-error
+  integration-tests:
+    docker:
+        - image:  cimg/python:3.8.4
+
+    steps:
+        - checkout
+        - print:
+            message: "running integration tests"
+
+        - run:
+              name: Run integration tests
+              command: |
+                  NUMBER_OF_FAILING_TESTS=1
+                  FAILING_TESTS="Errors"
+                  echo $NUMBER_OF_FAILING_TESTS
+                  echo "${FAILING_TESTS}"
+                  echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
+                  bash ./.circleci/scripts/integration_test.sh
+        - notify-success
+        - notify-error:
+            message: '${TESTS_FAIL_MESSAGE}'  
+            
+  acceptance-tests:
+    docker:
+        - image:  cimg/python:3.8.4 
+
+    steps:
+        - checkout
+        - print:
+            message: "running acceptance tests"
+
+        - run:
+              name: Run acceptsance tests
+              command: |
+                  bash ./.circleci/scripts/acceptance_test.sh  
+        - notify-success
+        - notify-error:
+            message: "Some error"
 
 workflows:
-
-  deploy-dev:
-    jobs:
-      - deploy-dev
+  version: 2.1
+  deploy-staging:
+      jobs:
+          - build-and-push-image
+             
+          - deploy-test-env:
+              requires:
+                - build-and-push-image
+         
+          - deploy-to-staging:
+              requires:
+                - build-and-push-image
+             
+          - integration-tests:
+              requires:
+                - deploy-test-env
+            
+          - acceptance-tests:
+              requires:
+                - deploy-to-staging
+          
+          
