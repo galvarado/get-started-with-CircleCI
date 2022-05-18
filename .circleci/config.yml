@@ -88,7 +88,7 @@ commands:
                       "text": "View Job"
                     },
                     "value": "view_job",
-                    "url": "$CIRCLE_BUILD_URL",
+                    "url": "${CIRCLE_BUILD_URL}",
                     "action_id": "button-action"
                   }
                 },
@@ -96,7 +96,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "LOL"
+                    "text": "<<parameters.message>>"
                   }
                 }
               ]
@@ -151,10 +151,15 @@ jobs:
               name: Run integration tests
               command: |
                   NUMBER_OF_FAILING_TESTS=1
-                  FAILING_TESTS="1 failing"
+                  FAILING_TESTS="Errors"
+                  echo $NUMBER_OF_FAILING_TESTS
+                  echo "${FAILING_TESTS}"
+                  echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
-        - notify-error            
+        - notify-error:
+            message: '${TESTS_FAIL_MESSAGE}'  
+            
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4 
