@@ -166,7 +166,7 @@ jobs:
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
         - notify-error:
-            message: ${TESTS_FAIL_MESSAGE}  
+            message: "${TESTS_FAIL_MESSAGE}"  
             
   acceptance-tests:
     docker:
