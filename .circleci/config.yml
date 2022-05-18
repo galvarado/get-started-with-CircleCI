@@ -96,7 +96,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "$LOL"
+                    "text": "LOL"
                   }
                 }
               ]
