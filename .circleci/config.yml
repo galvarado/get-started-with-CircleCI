@@ -96,7 +96,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "<<parameters.message>>"
+                    "text": "$TESTS_FAIL_MESSAGE"
                   }
                 }
               ]
@@ -166,9 +166,7 @@ jobs:
                   echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! ${FAILING_TESTS} \" >> $BASH_ENV
                   bash ./.circleci/scripts/integration_test.sh
         - notify-success
-        - notify-error:
-            message: $TESTS_FAIL_MESSAGE
-            
+        - notify-error            
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4 
