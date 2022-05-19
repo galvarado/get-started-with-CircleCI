@@ -142,9 +142,9 @@ jobs:
 
         - run:
               name: Run integration tests
-              command: |
-                  NUMBER_OF_FAILING_TESTS=1
-                  FAILING_TESTS="1 failing"
+              command: 
+                  NUMBER_OF_FAILING_TESTS="1"
+                  FAILING_TESTS=" failing"
                   echo $NUMBER_OF_FAILING_TESTS
                   echo "${FAILING_TESTS}"
                   echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
