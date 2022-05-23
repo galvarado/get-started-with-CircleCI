@@ -72,7 +72,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "A $CIRCLE_JOB job has failed :red_circle:"
+                    "text": "A $CIRCLE_JOB job has failed :red:circle:"
                   }
                 },
                 {
