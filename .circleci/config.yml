@@ -17,7 +17,16 @@ commands:
     steps:
       - run:
           name: Print a message
-          command: echo Hello << parameters.message >> 
+          command: echo Hello << parameters.message >>
+  
+  deploy:
+    description: "Deploy"
+    parameters:
+      message:
+        type: string
+    steps:
+      - print:
+          message: << parameters.message >>
 
   notify-success:
     description: "Custom slack notification"
@@ -117,7 +126,7 @@ jobs:
         - image:  cimg/python:3.8.4
 
     steps:
-        - print:
+        - deploy:
             message: "deploying test env"
         - notify-success
         - notify-error
@@ -127,7 +136,7 @@ jobs:
         - image:  cimg/python:3.8.4
 
     steps:
-        - print:
+        - deploy:
             message: "deploying staging env"
         - notify-success
         - notify-error
