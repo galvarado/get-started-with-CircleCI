@@ -127,7 +127,7 @@ jobs:
 
     steps:
         - deploy:
-            message: "deploying test env"
+            message: "deploying test"
         - notify-success
         - notify-error
         
