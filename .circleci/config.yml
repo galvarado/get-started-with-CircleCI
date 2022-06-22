@@ -153,6 +153,16 @@ jobs:
               name: Run integration tests
               command: 
                   bash ./.circleci/scripts/integration_test.sh
+        - run:
+              name: Check Failed Tests
+              when: on_fail
+              command: |
+                NUMBER_OF_FAILING_TESTS=1
+                FAILING_TESTS='Error: Timeout of 30000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves. (/code/dist/tests/acceptance/z-api-deposits.js)'
+                echo $NUMBER_OF_FAILING_TESTS
+                echo "${FAILING_TESTS}"
+
+                echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
         - notify-success
         - notify-error:
             message: 'error'  
