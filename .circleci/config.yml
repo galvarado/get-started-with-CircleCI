@@ -101,6 +101,13 @@ commands:
                     "action_id": "button-action"
                   }
                 }
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "<<parameters.message>>"
+                  }
+                }
               ]
             }
 
@@ -165,8 +172,7 @@ jobs:
                 echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
         - notify-success
         - notify-error:
-            message: 'error'  
-            
+            message: '${TESTS_FAIL_MESSAGE}'            
   acceptance-tests:
     docker:
         - image:  cimg/python:3.8.4 
