@@ -1,32 +1,337 @@
 version: 2.1
 
-orbs: 
-  slack: circleci/slack@4.9.3
+orbs:
+  aws-cli: circleci/aws-cli@2.1.0  
+  aws-ecr: circleci/aws-ecr@8.0.0
+  aws-eks: circleci/aws-eks@2.1.2
+  slack:   circleci/slack@4.9.3
+  kubernetes: circleci/kubernetes@1.3.0
+
 
 executors:
-  nodejs-executor:
+  python3:
     docker:
-      - image: circleci/node:14.4.0
+      - image: 'cimg/python:3.10'
 
 commands:
-  print:
-    description: "A simple echo"
-    parameters:
-      message:
-        type: string
+  get-kubernetes-status:
     steps:
       - run:
-          name: Print a message
-          command: echo Hello << parameters.message >>
-  
-  deploy:
-    description: "Deploy"
+          name: Status check
+          command: |
+            kubectl get services,deployments -o wide
+          when: always
+  set-commit-hash-to-deploy:
+    description: |
+      - A production deployment uses the commit hash from the latest commit of the feature branch that was merged into silverton-main.
+        This commit hash is parsed from the latest commit (a merge commit) on silverton-main.
+      - A feature branch deployment uses the commit hash of the head commit on the branch.
     parameters:
-      message:
+      is-merge-commit:
+        type: boolean
+        default: false
+    steps:
+      - run:
+          name: Parse commit hash and set environment variable
+          command: |
+            if [ << parameters.is-merge-commit >> = "true" ]; then
+              # We expect all merges into silverton-main to include a merge commit.
+              # A merge commit has two parent commits. One of the parent commits is the latest
+              # commit from the feature branch that was merged into silverton-main.
+
+              echo "Production deployment..."
+              git log --pretty=%P -n 1 | awk '{print $2}' | head -c7
+              echo "export COMMIT_HASH_TO_DEPLOY=$( git log --pretty=%P -n 1 | awk '{print $2}' | head -c7 )" >> $BASH_ENV
+            else
+              echo "Non-production deployment..."
+              echo $CIRCLE_SHA1 | head -c7
+              echo "export COMMIT_HASH_TO_DEPLOY=$(echo $CIRCLE_SHA1 | head -c7)" >> $BASH_ENV
+            fi
+  set-aws-environment-variables:
+    description: |
+      Set environment variables so that they can be used in each step of a job.
+      https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
+    parameters:
+      aws-access-key-id:
+        type: string
+      aws-secret-access-key:
+        type: string
+      aws-region:
+        type: string
+      aws-ecr-account-url:
+        type: string
+        default: ''
+      aws-ecr-registry-id:
+        type: string
+        default: ''
+    steps:
+      - run:
+          name: Set environment variables
+          command: |
+            echo 'export AWS_ACCESS_KEY_ID="<< parameters.aws-access-key-id >>"' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY="<< parameters.aws-secret-access-key >>"' >> $BASH_ENV
+            echo 'export AWS_REGION="<< parameters.aws-region >>"' >> $BASH_ENV
+            echo 'export AWS_ECR_ACCOUNT_URL="<< parameters.aws-ecr-account-url >>"' >> $BASH_ENV
+            echo 'export AWS_ECR_REGISTRY_ID="<< parameters.aws-ecr-registry-id >>"' >> $BASH_ENV
+  cleanup-test-environment:
+    parameters:
+      eks-cluster-name:
+        type: string
+      aws-region:
+        type: string
+      aws-access-key-id:
+        type: string
+      aws-secret-access-key:
+        type: string
+      container-registry-url:
         type: string
     steps:
-      - print:
-          message: << parameters.message >>
+      - set-aws-environment-variables:
+          aws-access-key-id: << parameters.aws-access-key-id >>
+          aws-secret-access-key: << parameters.aws-secret-access-key >>
+          aws-region: << parameters.aws-region >>
+      - checkout
+      - set-commit-hash-to-deploy:
+          is-merge-commit: false
+      - kubernetes/install-kubectl:
+          kubectl-version: "v1.23.5"
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << parameters.eks-cluster-name >>
+          aws-region: << parameters.aws-region >>
+      # Services throw errors if the DB is reset while they are running, which
+      # unnecessarily clutters the logs. Stop them first.
+      - run:
+          name: Stop all services
+          command: |
+            ./.circleci/scripts/eks-stop-all-services-in-test-env.sh
+      - run:
+          name: Run redis stream reset
+          command: |
+            CONTAINER_REGISTRY_URL=<< parameters.container-registry-url >> \
+              bash ./.circleci/scripts/eks-run-redis-reset-stream.sh
+      - get-kubernetes-status
+  deploy-services:
+    parameters:
+      aws-region:
+        type: string
+      aws-access-key-id:
+        type: string
+      aws-secret-access-key:
+        type: string
+      aws-ecr-registry-id:
+        type: string
+      container-registry-url:
+        type: string
+      cronjob-accounting-report:
+        description: |
+          If this value is true then the accounting report cronjob will be created
+          for the environment and run on the given schedule
+        type: boolean
+        default: false
+      cronjob-admin-dashboard-farm-reward-data:
+        description: Run this cronjob in this environment
+        type: boolean
+        default: false
+      cronjob-trading-rewards-payouts:
+        description: Run this cronjob in this environment
+        type: boolean
+        default: false
+      cronjob-analytics-daily-snapshots:
+        description: Run this cronjob in this environment
+        type: boolean
+        default: false
+      cronjob-update-community-stats:
+        description: |
+          Run update community stats cronjob in this environment?
+        type: boolean
+        default: false
+      cronjob-firehol-update-abusers:
+        description: |
+          If this value is true then the firehol-update-abusers cronjob will be created
+          for the environment and run on the given schedule
+        type: boolean
+        default: false
+      cronjob-compliance-scanner:
+        description: |
+          If this value is true then the compliance-scanner cronjob will be created
+          for the environment and run on the given schedule
+        type: boolean
+        default: false
+      db-migrations-flags:
+        description: |
+          Provide any additional flags to send to the scripts/deploySetupDb.sh script
+          such as --import-schema (which we want if we have dropped the tables previously).
+        type: string
+        default: ""
+      blockchain:
+        description: |
+          Provide the blockchain name that is being deployed, ethereum, binanceChain, or matic
+        type: string
+      deploy-load-generator:
+        description: |
+          If this value is true then the load-generator service will be deployed.
+          This service should only be deployed in demo/testing environments.
+        type: boolean
+        default: false
+      deploy-maximum-one-replica-per-service:
+        description: |
+          If this value is true then "replicas: 2", "replicas: 3",... will be overwritten with "replicas: 1"
+          in all k8s deployment yaml files
+        type: boolean
+        default: false
+      deploy-p2p:
+        description: |
+          If this value is true then services for the P2P release will be deployed. These include the
+          ledger writer and P2P variants of contract event scanner and dispatcher. Note that automatic
+          snapshots should be disabled in the TE in any environment running the ledger writer as the
+          latter controls snapshotting
+        type: boolean
+        default: false
+      deploy-write-services:
+        description: |
+          If this value is false then some write services won't be deployed.
+          This is needed in the test environment.
+        type: boolean
+        default: true
+      eks-cluster-name:
+        type: string
+      is-sub-account-deployment:
+        type: boolean
+        default: false
+      is-merge-commit:
+        type: boolean
+        default: false
+      replica-count-admin-dashboard:
+        description: Ignored if deploy-maximum-one-replica-per-service is true
+        type: string
+        default: ''
+      replica-count-cacher:
+        description: Ignored if deploy-maximum-one-replica-per-service is true
+        type: string
+        default: ''
+      replica-count-rest-api:
+        description: Ignored if deploy-maximum-one-replica-per-service is true
+        type: string
+        default: ''
+      replica-count-staking-coordinator:
+        description: Ignored if deploy-maximum-one-replica-per-service is true
+        type: string
+        default: ''
+      replica-count-websocket-api:
+        description: Ignored if deploy-maximum-one-replica-per-service is true
+        type: string
+        default: ''
+    steps:
+      - set-aws-environment-variables:
+          aws-access-key-id: << parameters.aws-access-key-id >>
+          aws-secret-access-key: << parameters.aws-secret-access-key >>
+          aws-region: << parameters.aws-region >>
+          aws-ecr-account-url: << parameters.container-registry-url >>
+          aws-ecr-registry-id: << parameters.aws-ecr-registry-id >>
+      - checkout
+      - aws-cli/setup:
+          aws-region: AWS_REGION
+          profile-name: default
+      - kubernetes/install-kubectl:
+          kubectl-version: "v1.23.5"
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << parameters.eks-cluster-name >>
+          aws-region: << parameters.aws-region >>
+      - aws-ecr/ecr-login:
+          registry-id: AWS_ECR_REGISTRY_ID
+          profile-name: default
+          region: << parameters.aws-region >>
+      - set-commit-hash-to-deploy:
+          is-merge-commit: << parameters.is-merge-commit >>
+      - run:
+          name: Clean up old jobs
+          command: |
+            bash .circleci/scripts/eks-clean-up-old-jobs.sh
+      - run:
+          name: Run db migrations
+          command: |
+            CONTAINER_REGISTRY_URL=<< parameters.container-registry-url >> \
+            AWS_REGION=<< parameters.aws-region >> \
+            MIGRATION_FLAGS="<< parameters.db-migrations-flags >>" \
+            bash ./.circleci/scripts/eks-run-db-migration.sh
+      - run:
+          name: Create or Update Cronjobs
+          command: |
+            CONTAINER_REGISTRY_URL=<< parameters.container-registry-url >> \
+            CRONJOB_ACCOUNTING_REPORT=<< parameters.cronjob-accounting-report >> \
+            CRONJOB_ADMIN_DASHBOARD_FARM_REWARD_DATA=<< parameters.cronjob-admin-dashboard-farm-reward-data >> \
+            CRONJOB_ANALYTICS_DAILY_SNAPSHOTS=<< parameters.cronjob-analytics-daily-snapshots >> \
+            CRONJOB_FIREHOL_UPDATE_ABUSERS=<< parameters.cronjob-firehol-update-abusers >> \
+            CRONJOB_COMPLIANCE_SCANNER=<< parameters.cronjob-compliance-scanner >> \
+            CRONJOB_UPDATE_COMMUNITY_STATS=<< parameters.cronjob-update-community-stats >> \
+            CRONJOB_TRADING_REWARDS_PAYOUTS=<< parameters.cronjob-trading-rewards-payouts >> \
+            BLOCKCHAIN=<< parameters.blockchain >> \
+            bash ./.circleci/scripts/eks-create-cronjobs.sh
+      - run:
+          name: Deploy
+          command: |
+            AWS_REGION=<< parameters.aws-region >> \
+              CONTAINER_REGISTRY_URL=<< parameters.container-registry-url >> \
+              DEPLOY_LOAD_GENERATOR=<< parameters.deploy-load-generator >> \
+              DEPLOY_MAXIMUM_ONE_REPLICA_PER_SERVICE=<< parameters.deploy-maximum-one-replica-per-service >> \
+              DEPLOY_P2P=<< parameters.deploy-p2p >> \
+              DEPLOY_WRITE_SERVICES=<< parameters.deploy-write-services >> \
+              IS_SUB_ACCOUNT_DEPLOYMENT=<< parameters.is-sub-account-deployment >> \
+              REPLICA_COUNT_ADMIN_DASHBOARD=<< parameters.replica-count-admin-dashboard >> \
+              REPLICA_COUNT_CACHER=<< parameters.replica-count-cacher >> \
+              REPLICA_COUNT_REST_API=<< parameters.replica-count-rest-api >> \
+              REPLICA_COUNT_STAKING_COORDINATOR=<< parameters.replica-count-staking-coordinator >> \
+              REPLICA_COUNT_WEBSOCKET_API=<< parameters.replica-count-websocket-api >> \
+              ./.circleci/scripts/eks-deploy-all-services.sh
+      - get-kubernetes-status
+
+  build-and-push-images-for-feature-branch:
+    description: |
+      Build and push images for a feature branch deployment
+    parameters:
+      aws-region:
+        type: string
+      aws-access-key-id:
+        type: string
+      aws-profile-name:
+        type: string
+        default: default
+      aws-secret-access-key:
+        type: string
+      aws-ecr-registry-id:
+        type: string
+      container-registry-url:
+        type: string
+    steps:
+      - checkout
+      - set-commit-hash-to-deploy:
+          is-merge-commit: false
+      - run:
+          name: Build docker images
+          command: |
+            bash ./.circleci/scripts/docker-build.sh
+
+            echo -e "\nFinished building images\n"
+
+            docker images
+      - set-aws-environment-variables:
+          aws-access-key-id: << parameters.aws-access-key-id >>
+          aws-secret-access-key: << parameters.aws-secret-access-key >>
+          aws-region: << parameters.aws-region >>
+          aws-ecr-account-url: << parameters.container-registry-url >>
+          aws-ecr-registry-id: << parameters.aws-ecr-registry-id >>
+      - aws-cli/setup:
+          aws-region: AWS_REGION
+          profile-name: << parameters.aws-profile-name >>
+      - aws-ecr/ecr-login:
+          registry-id: AWS_ECR_REGISTRY_ID
+          profile-name: << parameters.aws-profile-name >>
+          region: << parameters.aws-region >>
+      - run:
+          name: Push images
+          command: |
+            CONTAINER_REGISTRY_URL=<< parameters.container-registry-url >> \
+              ./.circleci/scripts/docker-push.sh
 
   notify-success:
     description: "Custom slack notification"
@@ -40,7 +345,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "A $CIRCLE_JOB job has succeeded :white_check_mark:"
+                    "text": ":white_check_mark: A $CIRCLE_JOB job has succeeded"
                   }
                 },
                 {
@@ -62,9 +367,7 @@ commands:
                 }
               ]
             }
-            
-            
-            
+
   notify-error:
     description: "Custom slack notification"
     parameters:
@@ -81,7 +384,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "A $CIRCLE_JOB job has failed :red_circle:"
+                    "text": ":red_circle: A $CIRCLE_JOB job has failed"
                   }
                 },
                 {
@@ -111,105 +414,560 @@ commands:
               ]
             }
 
-
-     
-
-
 jobs:
-  build-and-push-image:
-    docker:
-        - image:  cimg/python:3.8.4
 
+  #
+  # Deploy services
+  #
+
+  #
+  # Production - emergency hotfix
+  #
+  deploy-p9-prod-mainnet-environment-emergency-hotfix:
+    executor: python3
     steps:
-        - print:
-            message: "build and push"
+      - deploy-services:
+          blockchain: 'ethereum'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_PROD_MAINNET_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_PROD_MAINNET_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_PROD_MAINNET_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_PROD_MAINNET_CONTAINER_REGISTRY_URL}'
+          cronjob-accounting-report: true
+          cronjob-compliance-scanner: true
+          cronjob-firehol-update-abusers: true
+          db-migrations-flags: "--migrate"
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-merge-commit: false
+          is-sub-account-deployment: false
+          replica-count-cacher: "1"
+          replica-count-staking-coordinator: "1"
+      - notify-success
+      - notify-error
 
-        - notify-success
-        - notify-error
-
-
-  deploy-test-env:
-    docker:
-        - image:  cimg/python:3.8.4
-
+  deploy-p9-prod-sub-matic-mainnet-environment-emergency-hotfix:
+    executor: python3
     steps:
-        - deploy:
-            message: "deploying test"
-        - notify-success
-        - notify-error
-        
-  deploy-to-staging:
-    docker:
-        - image:  cimg/python:3.8.4
+      - deploy-services:
+          blockchain: 'matic'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_PROD_SUB_MATIC_MAINNET_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_PROD_SUB_MATIC_MAINNET_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_PROD_MAINNET_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_PROD_MAINNET_CONTAINER_REGISTRY_URL}'
+          cronjob-admin-dashboard-farm-reward-data: true
+          cronjob-update-community-stats: true
+          db-migrations-flags: "--migrate"
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-merge-commit: false 
+          is-sub-account-deployment: true
+          replica-count-admin-dashboard: "3"
+          replica-count-cacher: "3"
+          replica-count-rest-api: "8"
+          replica-count-staking-coordinator: "1"
+          replica-count-websocket-api: "3"
+      - notify-success
+      - notify-error
 
+  #
+  # Production
+  #
+  deploy-p9-prod-mainnet-environment:
+    executor: python3
     steps:
-        - deploy:
-            message: "deploying staging env"
-        - notify-success
-        - notify-error
-  integration-tests:
-    docker:
-        - image:  cimg/python:3.8.4
+      - deploy-services:
+          blockchain: 'ethereum'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_PROD_MAINNET_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_PROD_MAINNET_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          cronjob-accounting-report: true
+          cronjob-compliance-scanner: true
+          cronjob-firehol-update-abusers: true
+          db-migrations-flags: "--migrate"
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-merge-commit: true
+          is-sub-account-deployment: false
+          replica-count-cacher: "1"
+          replica-count-staking-coordinator: "1"
+      - notify-success
+      - notify-error
 
+  deploy-p9-prod-sub-matic-mainnet-environment:
+    executor: python3
     steps:
-        - checkout
-        - print:
-            message: "running integration tests"
+      - deploy-services:
+          blockchain: 'matic'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_PROD_SUB_MATIC_MAINNET_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_PROD_SUB_MATIC_MAINNET_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          cronjob-admin-dashboard-farm-reward-data: true
+          cronjob-analytics-daily-snapshots: true
+          cronjob-update-community-stats: true
+          cronjob-trading-rewards-payouts: true
+          db-migrations-flags: "--migrate"
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-merge-commit: true
+          is-sub-account-deployment: true
+          replica-count-admin-dashboard: "3"
+          replica-count-cacher: "3"
+          replica-count-rest-api: "8"
+          replica-count-staking-coordinator: "1"
+          replica-count-websocket-api: "3"
+      - notify-success
+      - notify-error
 
-        - run:
-              name: Run integration tests
-              command: 
-                  bash ./.circleci/scripts/integration_test.sh
-        - run:
-              name: Check Failed Tests
-              when: on_fail
-              command: |
-                NUMBER_OF_FAILING_TESTS=1
-                FAILING_TESTS=$(echo 'Error: Timeout of 30000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves. (/code/dist/tests/acceptance/z-api-deposits.js)' |  sed s/\"//g)
-                echo $NUMBER_OF_FAILING_TESTS
-                echo "${FAILING_TESTS}"
-
-                echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
-        - notify-success
-        - notify-error:
-            message: '$TESTS_FAIL_MESSAGE'            
-  acceptance-tests:
-    docker:
-        - image:  cimg/python:3.8.4 
-
+  #
+  # Sandbox
+  #
+  deploy-p9-sandbox-rinkeby-environment:
+    executor: python3
     steps:
-        - checkout
-        - print:
-            message: "running acceptance tests"
+      - deploy-services:
+          blockchain: 'ethereum'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_SANDBOX_RINKEBY_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_SANDBOX_RINKEBY_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          db-migrations-flags: "--migrate"
+          deploy-maximum-one-replica-per-service: true
+          deploy-p2p: false
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-merge-commit: true
+          is-sub-account-deployment: false
+      - notify-success
+      - notify-error
 
-        - run:
-              name: Run acceptsance tests
-              command: |
-                  bash ./.circleci/scripts/acceptance_test.sh  
-        - notify-success
-        - notify-error:
-            message: "Some error"
+  deploy-p9-sandbox-sub-matic-mumbai-environment:
+    executor: python3
+    steps:
+      - deploy-services:
+          blockchain: 'matic'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_SANDBOX_SUB_MATIC_MUMBAI_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_SANDBOX_SUB_MATIC_MUMBAI_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          db-migrations-flags: "--migrate"
+          deploy-load-generator: true
+          deploy-maximum-one-replica-per-service: true
+          deploy-p2p: false
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-merge-commit: true
+          is-sub-account-deployment: true
+      - notify-success
+      - notify-error
+
+  #
+  # Staging
+  #
+  deploy-p9-staging-rinkeby-environment:
+    executor: python3
+    steps:
+      - deploy-services:
+          blockchain: 'ethereum'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_STAGING_RINKEBY_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_STAGING_RINKEBY_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          cronjob-firehol-update-abusers: true
+          db-migrations-flags: "--migrate"
+          deploy-maximum-one-replica-per-service: true
+          deploy-p2p: true
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-sub-account-deployment: false
+      - notify-success
+      - notify-error
+
+  deploy-p9-staging-sub-matic-mumbai-environment:
+    executor: python3
+    steps:
+      - deploy-services:
+          blockchain: 'matic'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_STAGING_SUB_MATIC_MUMBAI_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_STAGING_SUB_MATIC_MUMBAI_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          cronjob-admin-dashboard-farm-reward-data: true
+          cronjob-analytics-daily-snapshots: true
+          cronjob-trading-rewards-payouts: false
+          db-migrations-flags: "--migrate"
+          deploy-load-generator: true
+          deploy-maximum-one-replica-per-service: true
+          deploy-p2p: false
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-sub-account-deployment: true
+      - notify-success
+      - notify-error
+
+  #
+  # Dev
+  #
+  deploy-p9-dev-private-1-environment:
+    executor: python3
+    steps:
+      - deploy-services:
+          blockchain: 'ethereum'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_DEV_PRIVATE_1_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_DEV_PRIVATE_1_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_DEV_PRIVATE_1_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_DEV_PRIVATE_1_CONTAINER_REGISTRY_URL}'
+          db-migrations-flags: "--migrate"
+          deploy-maximum-one-replica-per-service: true
+          deploy-p2p: false
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-sub-account-deployment: false
+      - notify-success
+      - notify-error
+
+  deploy-p9-dev-sub-matic-mumbai-1-environment:
+    executor: python3
+    steps:
+      - deploy-services:
+          blockchain: 'matic'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_DEV_SUB_MATIC_MUMBAI_1_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_DEV_SUB_MATIC_MUMBAI_1_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_DEV_PRIVATE_1_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_DEV_PRIVATE_1_CONTAINER_REGISTRY_URL}'
+          cronjob-admin-dashboard-farm-reward-data: true
+          cronjob-analytics-daily-snapshots: true
+          cronjob-update-community-stats: false
+          cronjob-trading-rewards-payouts: true
+          db-migrations-flags: "--migrate"
+          deploy-load-generator: true
+          deploy-maximum-one-replica-per-service: true
+          deploy-p2p: false
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          is-sub-account-deployment: true
+      - notify-success
+      - notify-error
+
+  #
+  # Test
+  #
+  deploy-p9-test-environment:
+    executor: python3
+    steps:
+      - cleanup-test-environment:
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_TEST_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_TEST_AWS_SECRET_ACCESS_KEY}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+      - deploy-services:
+          blockchain: 'ethereum'
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_TEST_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_TEST_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+          db-migrations-flags: "--drop-tables --import-schema --migrate"
+          deploy-maximum-one-replica-per-service: true
+          deploy-write-services: false
+          eks-cluster-name: '${EKS_CLUSTER_NAME}'
+          # The test environment needs to be treated like a sub-account during
+          # deployments in order for all services to be redeployed.
+          is-sub-account-deployment: true
+      - notify-error
+
+
+  #
+  # Build and push images
+  #
+
+  #
+  # Production - emergency hotfix
+  #
+  build-and-push-images-for-p9-prod-mainnet:
+    machine:
+      image: ubuntu-2004:202111-02
+      docker_layer_caching: true
+    resource_class: large
+    steps:
+      - build-and-push-images-for-feature-branch:
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_PROD_MAINNET_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_PROD_MAINNET_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_PROD_MAINNET_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_PROD_MAINNET_CONTAINER_REGISTRY_URL}'
+      - notify-error
+
+
+
+  #
+  # Staging
+  #
+  build-and-push-images-for-p9-staging-rinkeby:
+    machine:
+      image: ubuntu-2004:202111-02
+      docker_layer_caching: true
+    resource_class: large
+    steps:
+      - build-and-push-images-for-feature-branch:
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_STAGING_RINKEBY_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_STAGING_RINKEBY_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_STAGING_RINKEBY_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL}'
+      - notify-error
+
+
+  #
+  # Dev
+  #
+  build-and-push-images-for-p9-dev-private-1:
+    machine:
+      image: ubuntu-2004:202111-02
+      docker_layer_caching: true
+    steps:
+      - build-and-push-images-for-feature-branch:
+          aws-region: '${AWS_REGION}'
+          aws-access-key-id: '${P9_DEV_PRIVATE_1_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_DEV_PRIVATE_1_AWS_SECRET_ACCESS_KEY}'
+          aws-ecr-registry-id: '${P9_DEV_PRIVATE_1_AWS_ECR_REGISTRY_ID}'
+          container-registry-url: '${P9_DEV_PRIVATE_1_CONTAINER_REGISTRY_URL}'
+      - notify-error
+
+
+
+  #
+  # Integration tests
+  #
+  run-integration-tests:
+    executor: python3
+    steps:
+      - set-aws-environment-variables:
+          aws-access-key-id: '${P9_TEST_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_TEST_AWS_SECRET_ACCESS_KEY}'
+          aws-region: '${AWS_REGION}'
+      - checkout
+      - set-commit-hash-to-deploy:
+          is-merge-commit: false
+      - kubernetes/install-kubectl:
+          kubectl-version: "v1.23.5"
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: '${EKS_CLUSTER_NAME}'
+          aws-region: '${AWS_REGION}'
+      - run:
+          name: Run tests
+          command: |
+            CONTAINER_REGISTRY_URL=${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL} \
+              bash ./.circleci/scripts/eks-run-integration-tests.sh
+          no_output_timeout: 15m # NOTE: Keep the timeout in sync with integration-tests.yaml
+      - get-kubernetes-status
+      - run:
+          name: Store test results
+          when: always
+          command: |
+            mkdir /tmp/integration-test-results
+            kubectl logs job.batch/integration-tests-$COMMIT_HASH_TO_DEPLOY >> /tmp/integration-test-results/results.txt
+      - store_artifacts:
+          path: /tmp/integration-test-results
+      - run:
+          name: Check Failed Tests
+          when: on_fail
+          command: |
+            NUMBER_OF_FAILING_TESTS=$(kubectl logs job.batch/integration-tests-$COMMIT_HASH_TO_DEPLOY | grep failing)
+            FAILING_TESTS=$(kubectl logs job.batch/integration-tests-$COMMIT_HASH_TO_DEPLOY | grep -A 30 -P "failing" | sed s/\"//g)
+            echo $NUMBER_OF_FAILING_TESTS
+            echo "${FAILING_TESTS}"
+
+            echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
+      - notify-error:
+          message: '$TESTS_FAIL_MESSAGE'      
+
+
+
+  #
+  # Acceptance tests
+  #
+  run-acceptance-tests:
+    executor: python3
+    steps:
+      - set-aws-environment-variables:
+          aws-access-key-id: '${P9_STAGING_SUB_MATIC_MUMBAI_AWS_ACCESS_KEY_ID}'
+          aws-secret-access-key: '${P9_STAGING_SUB_MATIC_MUMBAI_AWS_SECRET_ACCESS_KEY}'
+          aws-region: '${AWS_REGION}'
+      - checkout
+      - set-commit-hash-to-deploy:
+          is-merge-commit: false
+      - kubernetes/install-kubectl:
+          kubectl-version: "v1.23.5"
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: '${EKS_CLUSTER_NAME}'
+          aws-region: '${AWS_REGION}'
+      - run:
+          name: Run tests
+          command: |
+            CONTAINER_REGISTRY_URL=${P9_STAGING_RINKEBY_CONTAINER_REGISTRY_URL} \
+              bash ./.circleci/scripts/eks-run-acceptance-tests.sh
+          no_output_timeout: 15m # NOTE: Keep the timeout in sync with acceptance-tests.yaml
+      - get-kubernetes-status
+      - run:
+          name: Store test results
+          when: always
+          command: |
+            mkdir /tmp/acceptance-test-results
+            kubectl logs job.batch/acceptance-tests-$COMMIT_HASH_TO_DEPLOY >> /tmp/acceptance-test-results/results.txt
+      - store_artifacts:
+          path: /tmp/acceptance-test-results
+      - run:
+          name: Check Failed Tests
+          when: on_fail
+          command: |
+            NUMBER_OF_FAILING_TESTS=$(kubectl logs job.batch/acceptance-tests-$COMMIT_HASH_TO_DEPLOY | grep failing)
+            FAILING_TESTS=$(kubectl logs job.batch/acceptance-tests-$COMMIT_HASH_TO_DEPLOY | grep -A 30 -P "failing" | sed s/\"//g)
+            echo $NUMBER_OF_FAILING_TESTS
+            echo "${FAILING_TESTS}"
+
+            echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-acceptance-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
+      - notify-error:
+          message: '$TESTS_FAIL_MESSAGE'      
+
 
 workflows:
-  version: 2.1
+  
+  deploy-production-emergency-hotfix:
+    jobs:
+      - build-and-push-images-for-p9-prod-mainnet:
+          context:
+            - Slack
+          filters:
+            tags:
+              only: /^p9-prod-emergency-hotfix$/
+            # Exclude commits on all branches
+            branches:
+              ignore: /.*/
+      - deploy-p9-prod-mainnet-environment-emergency-hotfix:
+          context:
+            - Slack
+          requires:
+            - build-and-push-images-for-p9-prod-mainnet
+          filters:
+            tags:
+              only: /^p9-prod-emergency-hotfix$/
+      - deploy-p9-prod-sub-matic-mainnet-environment-emergency-hotfix:
+          context:
+            - Slack
+          requires:
+            - build-and-push-images-for-p9-prod-mainnet
+          filters:
+            tags:
+              only: /^p9-prod-emergency-hotfix$/
+
+  deploy-production:
+    jobs:
+      - deploy-p9-prod-mainnet-environment:
+          context:
+            - Slack
+          filters:
+              branches:
+                only: main
+      - deploy-p9-prod-sub-matic-mainnet-environment:
+          context:
+            - Slack
+          filters:
+              branches:
+                only: main
+      - deploy-p9-sandbox-rinkeby-environment:
+          context:
+            - Slack
+          filters:
+              branches:
+                only: main
+      - deploy-p9-sandbox-sub-matic-mumbai-environment:
+          context:
+            - Slack
+          filters:
+              branches:
+                only: main
+
+
   deploy-staging:
-      jobs:
-          - build-and-push-image
-             
-          - deploy-test-env:
-              requires:
-                - build-and-push-image
-         
-          - deploy-to-staging:
-              requires:
-                - build-and-push-image
-             
-          - integration-tests:
-              requires:
-                - deploy-test-env
-            
-          - acceptance-tests:
-              requires:
-                - deploy-to-staging
-          
-          
+    jobs:
+      - build-and-push-images-for-p9-staging-rinkeby:
+          context:
+            - Slack
+          filters:
+            tags:
+              only: /^p9-staging$/
+            # Exclude commits on all branches
+            branches:
+              ignore: /.*/
+      - deploy-p9-test-environment:
+          context:
+            - Slack
+          requires:
+            - build-and-push-images-for-p9-staging-rinkeby
+          filters:
+            tags:
+              only: /^p9-staging$/
+      - run-integration-tests:
+          context:
+            - Slack
+          requires:
+            - deploy-p9-test-environment
+          filters:
+            tags:
+              only: /^p9-staging$/
+      - deploy-p9-staging-rinkeby-environment:
+          context:
+            - Slack
+          requires:
+            - build-and-push-images-for-p9-staging-rinkeby
+          filters:
+            tags:
+              only: /^p9-staging$/
+      - deploy-p9-staging-sub-matic-mumbai-environment:
+          context:
+            - Slack
+          requires:
+            - build-and-push-images-for-p9-staging-rinkeby
+          filters:
+            tags:
+              only: /^p9-staging$/
+      - run-acceptance-tests:
+          context:
+            - Slack
+          requires:
+            - deploy-p9-staging-sub-matic-mumbai-environment
+          filters:
+            tags:
+              only: /^p9-staging$/
+
+  deploy-dev:
+    jobs:
+      - build-and-push-images-for-p9-dev-private-1:
+          context:
+            - Slack
+          filters:
+            tags:
+              only: /^p9-dev$/
+            # Exclude commits on all branches
+            branches:
+              ignore: /.*/
+      - deploy-p9-dev-private-1-environment:
+          context:
+            - Slack
+          requires:
+            - build-and-push-images-for-p9-dev-private-1
+          filters:
+            tags:
+              only: /^p9-dev$/
+      - deploy-p9-dev-sub-matic-mumbai-1-environment:
+          context:
+            - Slack
+          requires:
+            - build-and-push-images-for-p9-dev-private-1
+          filters:
+            tags:
+              only: /^p9-dev$/
+              
