@@ -165,7 +165,7 @@ jobs:
               when: on_fail
               command: |
                 NUMBER_OF_FAILING_TESTS=1
-                FAILING_TESTS=$(echo 'job.batch/acceptance-tests-7564dc8 created
+                FAILING_TESTS=$(echo -e 'job.batch/acceptance-tests-7564dc8 created
 
 
 
