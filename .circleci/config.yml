@@ -177,7 +177,7 @@ jobs:
                   Failed
 
                   Exited with code exit status 1
-                  CircleCI received exit code 1' |  sed s/\"//g | sed s/\n/\\n/g)ssssssssssssssssssssssssssssssss
+                  CircleCI received exit code 1' |  sed s/\"//g | sed s/\n/\\n/g)
                 echo $NUMBER_OF_FAILING_TESTS
                 echo "${FAILING_TESTS}"
 
