@@ -181,7 +181,7 @@ jobs:
                 echo $NUMBER_OF_FAILING_TESTS
                 echo "${FAILING_TESTS}"
 
-                echo export TESTS_FAIL_MESSAGE="${FAILING_TESTS}" >> $BASH_ENV
+                echo export TESTS_FAIL_MESSAGE=\" 🔴 A run-integration-tests job has failed!! "${FAILING_TESTS}" \" >> $BASH_ENV
         - notify-success
         - notify-error
   acceptance-tests:
