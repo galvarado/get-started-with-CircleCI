@@ -2,6 +2,7 @@ version: 2.1
 
 orbs: 
   slack: circleci/slack@4.9.3
+  queue: eddiewebb/queue@2.2.1
 
 executors:
   nodejs-executor:
@@ -103,9 +104,52 @@ commands:
                 },
                 {
                   "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*User*: ${CIRCLE_PROJECT_USERNAME}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Job Number*: ${CIRCLE_BUILD_NUM}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch*: $CIRCLE_BRANCH"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Error*:  << parameters.message >> "
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Job"
+                      },
+                      "url": "${CIRCLE_BUILD_URL}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "$TESTS_FAIL_MESSAGE"
+                    "text": "Errors: <<parameters.message>>"
                   }
                 }
               ]
@@ -205,8 +249,14 @@ workflows:
   version: 2.1
   deploy-staging:
       jobs:
-          - build-and-push-image
-             
+          - queue/block_workflow:
+              consider-branch: false
+              time: '15' # How many minutes to wait before giving up.
+               
+          - build-and-push-image:
+               requires:
+                 - queue/block_workflow
+
           - deploy-test-env:
               requires:
                 - build-and-push-image
