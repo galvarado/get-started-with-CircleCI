@@ -2,7 +2,6 @@ version: 2.1
 
 orbs: 
   slack: circleci/slack@4.9.3
-  queue: eddiewebb/queue@2.2.1
 
 executors:
   nodejs-executor:
@@ -250,8 +249,6 @@ workflows:
   deploy-staging:
       jobs:
           - build-and-push-image:
-               requires:
-                 - queue/block_workflow
 
           - deploy-test-env:
               requires:
