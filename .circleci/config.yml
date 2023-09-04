@@ -167,8 +167,7 @@ jobs:
         - run:
             name: Prevent parallel jobs
             command:
-                ls
-                bash ./.circleci/scripts/prevent_parallel_jobs.sh
+                ls -lash; bash ./.circleci/scripts/prevent_parallel_jobs.sh
 
         - print:
             message: "build and push"
