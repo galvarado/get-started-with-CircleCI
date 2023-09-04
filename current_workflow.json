@@ -1,0 +1,11 @@
+{
+  "pipeline_id" : "a660c477-a7dc-4af6-9934-7a828ca18096",
+  "id" : "4e86dfba-49f2-46c8-9551-80e3c8fe78d2",
+  "name" : "deploy-staging",
+  "project_slug" : "gh/galvarado/get-started-with-CircleCI",
+  "status" : "failed",
+  "started_by" : "5fffbcd7-88df-45e1-82cc-88e9ec818c98",
+  "pipeline_number" : 195,
+  "created_at" : "2023-09-04T16:24:53Z",
+  "stopped_at" : "2023-09-04T16:25:37Z"
+}

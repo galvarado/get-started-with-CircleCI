@@ -5,23 +5,24 @@ curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/
 WF_NAME=$(jq -r '.name' current_workflow.json)
 CURRENT_PIPELINE_NUM=$(jq -r '.pipeline_number' current_workflow.json)
 
-## Get the ID of the most recent pipeline created by the current user on the same branch.
-LATEST_PIPELINE_ID=$(curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/project/gh/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pipeline?branch=$CIRCLE_BRANCH"|jq -r '.items[0].id')
+## Get the IDs of pipelines created by the current user on the same branch. (Only consider pipelines that have a pipeline number inferior to the current pipeline)
+PIPE_IDS=$(curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/project/gh/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pipeline?branch=$CIRCLE_BRANCH"|jq -r --argjson CURRENT_PIPELINE_NUM "$CURRENT_PIPELINE_NUM" '.items[] | select(.state == "created") | select(.number < $CURRENT_PIPELINE_NUM)|.id')
 
-## Get the IDs of all running workflows in the latest pipeline with the same name as the current workflow.
-if [ ! -z "$LATEST_PIPELINE_ID" ]; then
-  RUNNING_WORKFLOW_IDS=$(curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/pipeline/${LATEST_PIPELINE_ID}/workflow"|jq -r --arg WF_NAME "${WF_NAME}" '.items[] | select(.status == "running") | select(.name == $WF_NAME) | .id')
+## Get the IDs of currently running/on_hold workflows that have the same name as the current workflow, in all previously created pipelines.
+if [ ! -z "$PIPE_IDS" ]; then
+  for PIPE_ID in $PIPE_IDS
+  do
+    curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/pipeline/${PIPE_ID}/workflow"|jq -r --arg WF_NAME "${WF_NAME}" '.items[]|select(.status == "running") | select(.name == $WF_NAME) | .id' >> OTHER_WF.txt
+  done
 fi
 
-## Cancel the latest running workflow with the same name only if there are more running workflows.
-if [ ! -z "$RUNNING_WORKFLOW_IDS" ]; then
-  if [ $(echo "$RUNNING_WORKFLOW_IDS" | wc -w) -gt 1 ]; then
-    LATEST_WORKFLOW_ID=$(echo "$RUNNING_WORKFLOW_IDS" | tail -n 1)
-    echo "Cancelling the latest running workflow with the name: $WF_NAME (Workflow ID: $LATEST_WORKFLOW_ID)"
-    curl --header "Circle-Token: $CIRCLE_TOKEN" --request POST https://circleci.com/api/v2/workflow/$LATEST_WORKFLOW_ID/cancel
+## Cancel any currently running/on_hold workflow with the same name
+if [ -s OTHER_WF.txt ]; then
+  echo "Cancelling this workflow as there is other running):"
+  cat OTHER_WF.txt 
+  curl --header "Circle-Token: $CIRCLE_TOKEN" --request POST https://circleci.com/api/v2/workflow/$CURRENT_PIPELINE_NUM/cancel
+  ## Allowing some time to complete the cancellation
+  sleep 2
   else
-    echo "There is only one running workflow with the name: $WF_NAME in the latest pipeline. No workflows will be cancelled."
-  fi
-else
-  echo "No running workflows with the name: $WF_NAME found in the latest pipeline."
+    echo "Nothing to cancel"
 fi
