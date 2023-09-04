@@ -249,10 +249,6 @@ workflows:
   version: 2.1
   deploy-staging:
       jobs:
-          - queue/block_workflow:
-              consider-branch: false
-              time: '15' # How many minutes to wait before giving up.
-               
           - build-and-push-image:
                requires:
                  - queue/block_workflow
