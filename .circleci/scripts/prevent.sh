@@ -4,7 +4,7 @@
 curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}" -o current_workflow.json
 WF_NAME=$(jq -r '.name' current_workflow.json)
 CURRENT_PIPELINE_NUM=$(jq -r '.pipeline_number' current_workflow.json)
-
+echo $CIRCLE_PROJECT_USERNAME
 ## Get the IDs of pipelines created by the current user on the same branch. (Only consider pipelines that have a pipeline number inferior to the current pipeline)
 PIPE_IDS=$(curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/project/gh/$CIRCLE_PROJECT_REPONAME/pipeline?branch=$CIRCLE_BRANCH"|jq -r --argjson CURRENT_PIPELINE_NUM "$CURRENT_PIPELINE_NUM" '.items[] | select(.state == "created") | select(.number < $CURRENT_PIPELINE_NUM)|.id')
 
