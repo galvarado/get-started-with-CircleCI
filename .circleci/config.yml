@@ -166,7 +166,8 @@ jobs:
     steps:
         - run:
             name: Prevent parallel jobs
-            command: 
+            command:
+                ls
                 bash ./.circleci/scripts/prevent_parallel_jobs.sh
 
         - print:
