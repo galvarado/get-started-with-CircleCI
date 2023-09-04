@@ -248,7 +248,7 @@ workflows:
   version: 2.1
   deploy-staging:
       jobs:
-          - build-and-push-image:
+          - build-and-push-image
 
           - deploy-test-env:
               requires:
