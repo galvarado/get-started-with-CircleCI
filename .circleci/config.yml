@@ -175,7 +175,6 @@ jobs:
         - notify-success
         - notify-error
 
-
   deploy-test-env:
     docker:
         - image:  cimg/python:3.8.4
