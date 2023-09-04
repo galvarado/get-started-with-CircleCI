@@ -20,7 +20,7 @@ fi
 if [ -s OTHER_WF.txt ]; then
   echo "Cancelling this workflow as there is other running):"
   cat OTHER_WF.txt 
-  curl --header "Circle-Token: $CIRCLE_TOKEN" --request POST https://circleci.com/api/v2/workflow/$CURRENT_PIPELINE_NUM/cancel
+  curl --header "Circle-Token: $CIRCLE_TOKEN" --request POST https://circleci.com/api/v2/workflow/$CIRCLE_WORKFLOW_ID/cancel
   ## Allowing some time to complete the cancellation
   sleep 2
   else
