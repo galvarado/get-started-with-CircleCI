@@ -6,7 +6,7 @@ WF_NAME=$(jq -r '.name' current_workflow.json)
 CURRENT_PIPELINE_NUM=$(jq -r '.pipeline_number' current_workflow.json)
 echo $CIRCLE_PROJECT_USERNAME
 ## Get the IDs of pipelines created by the current user on the same branch. (Only consider pipelines that have a pipeline number inferior to the current pipeline)
-PIPE_IDS=$(curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/project/gh/galvarado/git$CIRCLE_PROJECT_REPONAME/pipeline?branch=$CIRCLE_BRANCH"|jq -r --argjson CURRENT_PIPELINE_NUM "$CURRENT_PIPELINE_NUM" '.items[] | select(.state == "created") | select(.number < $CURRENT_PIPELINE_NUM)|.id')
+PIPE_IDS=$(curl --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/project/gh/galvarado/$CIRCLE_PROJECT_REPONAME/pipeline?branch=$CIRCLE_BRANCH"|jq -r --argjson CURRENT_PIPELINE_NUM "$CURRENT_PIPELINE_NUM" '.items[] | select(.state == "created") | select(.number < $CURRENT_PIPELINE_NUM)|.id')
 
 ## Get the IDs of currently running/on_hold workflows that have the same name as the current workflow, in all previously created pipelines.
 if [ ! -z "$PIPE_IDS" ]; then
