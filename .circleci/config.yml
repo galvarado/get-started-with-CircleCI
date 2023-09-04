@@ -164,6 +164,7 @@ jobs:
         - image:  cimg/python:3.8.4
 
     steps:
+        - checkout
         - run:
             name: Prevent parallel jobs
             command:
