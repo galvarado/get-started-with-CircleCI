@@ -28,7 +28,7 @@ if [ "$http_code" -eq 200 ]; then
   PIPE_IDS=$(echo "$content" | jq -r --argjson CURRENT_PIPELINE_NUM "$CURRENT_PIPELINE_NUM" '.items[] | select(.state == "created") | select(.number < $CURRENT_PIPELINE_NUM)|.id')
 else
   echo "Error: Unexpected HTTP status code: $http_code"
-  echo "Response: $content"
+  echo "Response: $response"
   exit 1
 fi
 
