@@ -20,15 +20,15 @@ echo $CIRCLE_BRANCH
 echo $CURRENT_PIPELINE_NUM
 
 # Step 3: Get the IDs of currently running/on_hold workflows with the same name in previously created pipelines
-curl_output=$(curl -w "\n%{http_code}" --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/project/gh/$CIRCLE_PROJECT_REPONAME/pipeline?branch=$CIRCLE_BRANCH")
+curl_output=$(curl -w "\n%{http_code}" --header "Circle-Token: $CIRCLE_TOKEN" --request GET "https://circleci.com/api/v2/project/gh/galvarado/$CIRCLE_PROJECT_REPONAME/pipeline?branch=$CIRCLE_BRANCH")
 http_code=$(tail -n1 <<< "$curl_output")
-content=$(sed '$ d' <<< "$curl_output")
+response=$(sed '$ d' <<< "$curl_output")
 
 if [ "$http_code" -eq 200 ]; then
   PIPE_IDS=$(echo "$content" | jq -r --argjson CURRENT_PIPELINE_NUM "$CURRENT_PIPELINE_NUM" '.items[] | select(.state == "created") | select(.number < $CURRENT_PIPELINE_NUM)|.id')
 else
   echo "Error: Unexpected HTTP status code: $http_code"
-  echo "Content: $content"
+  echo "Response: $content"
   exit 1
 fi
 
